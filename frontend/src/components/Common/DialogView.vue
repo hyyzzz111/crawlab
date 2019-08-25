@@ -83,6 +83,7 @@ export default {
         this.$store.commit('dialogView/SET_DIALOG_VISIBLE', value)
       }
     },
+
     title () {
       if (this.dialogType === 'nodeDeploy') {
         return 'Deploy'
@@ -151,8 +152,11 @@ export default {
     }
   },
   mounted () {
-    if (!this.spiderList || !this.spiderList.length) this.$store.dispatch('spider/getSpiderList')
-    if (!this.nodeList || !this.nodeList.length) this.$store.dispatch('node/getNodeList')
+    this.$store.subscribe((mutation, state) => {
+      console.log(mutation,state)
+    })
+    // if (!this.spiderList || !this.spiderList.length) this.$store.dispatch('spider/getSpiderList')
+    // if (!this.nodeList || !this.nodeList.length) this.$store.dispatch('node/getNodeList')
   }
 }
 </script>

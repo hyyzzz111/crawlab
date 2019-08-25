@@ -13,6 +13,8 @@ import schedule from './modules/schedule'
 import lang from './modules/lang'
 import site from './modules/site'
 import stats from './modules/stats'
+import system from './modules/system'
+import dynamicRouting from './modules/dynamicRouting'
 import getters from './getters'
 
 Vue.use(Vuex)
@@ -23,6 +25,7 @@ const store = new Vuex.Store({
     user,
     tagsView,
     dialogView,
+    dynamicRouting,
     node,
     spider,
     deploy,
@@ -32,7 +35,8 @@ const store = new Vuex.Store({
     lang,
     site,
     // 百度统计
-    stats
+    stats,
+    system
   },
   getters
 })

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"crawlab/constants"
 	"crawlab/database"
 	"crawlab/utils"
 	"github.com/apex/log"
@@ -15,7 +16,7 @@ type User struct {
 	Id       bson.ObjectId `json:"_id" bson:"_id"`
 	Username string        `json:"username" bson:"username"`
 	Password string        `json:"password" bson:"password"`
-	Role     string        `json:"role" bson:"role"`
+	Roles    []string      `json:"roles" bson:"roles"`
 
 	CreateTs time.Time `json:"create_ts" bson:"create_ts"`
 	UpdateTs time.Time `json:"update_ts" bson:"update_ts"`
@@ -66,16 +67,16 @@ func (user *User) Add() error {
 	return nil
 }
 
-func GetUser(id bson.ObjectId) (User, error) {
+func GetUser(id bson.ObjectId) (*User, error) {
 	s, c := database.GetCol("users")
 	defer s.Close()
 	var user User
 	if err := c.Find(bson.M{"_id": id}).One(&user); err != nil {
 		log.Errorf(err.Error())
 		debug.PrintStack()
-		return user, err
+		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }
 
 func GetUserByUsername(username string) (User, error) {
@@ -154,4 +155,12 @@ func RemoveUser(id bson.ObjectId) error {
 	}
 
 	return nil
+}
+
+func HasAdminUser() (exists bool, err error) {
+	s, c := database.GetCol("users")
+	defer s.Clone()
+	count, err := c.Find(bson.M{"roles": constants.RoleAdmin}).Count()
+
+	return count > 0, err
 }

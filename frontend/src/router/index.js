@@ -26,7 +26,6 @@ Vue.use(Router)
  **/
 export const constantRouterMap = [
   { path: '/login', component: () => import('../views/login/index'), hidden: true },
-  { path: '/signup', component: () => import('../views/login/index'), hidden: true },
   { path: '/404', component: () => import('../views/404'), hidden: true },
   { path: '/', redirect: '/home' },
 
@@ -46,7 +45,6 @@ export const constantRouterMap = [
     ]
   },
   {
-    name: 'Node',
     path: '/nodes',
     component: Layout,
     meta: {
@@ -76,7 +74,6 @@ export const constantRouterMap = [
     ]
   },
   {
-    name: 'Spider',
     path: '/spiders',
     component: Layout,
     meta: {
@@ -106,7 +103,6 @@ export const constantRouterMap = [
     ]
   },
   {
-    name: 'Task',
     path: '/tasks',
     component: Layout,
     meta: {
@@ -136,7 +132,6 @@ export const constantRouterMap = [
     ]
   },
   {
-    name: 'Schedule',
     path: '/schedules',
     component: Layout,
     meta: {
@@ -157,7 +152,6 @@ export const constantRouterMap = [
     ]
   },
   {
-    name: 'Site',
     path: '/sites',
     component: Layout,
     hidden: true,
@@ -178,7 +172,6 @@ export const constantRouterMap = [
     ]
   },
   {
-    name: 'User',
     path: '/users',
     component: Layout,
     meta: {
@@ -206,7 +199,6 @@ const router = new Router({
   scrollBehavior: () => ({ y: 0 }),
   routes: constantRouterMap
 })
-
 router.beforeEach((to, from, next) => {
   if (to.meta && to.meta.title) {
     window.document.title = `Crawlab - ${to.meta.title}`
@@ -214,7 +206,7 @@ router.beforeEach((to, from, next) => {
     window.document.title = 'Crawlab'
   }
 
-  if (['/login', '/signup'].includes(to.path)) {
+  if (['/login', '/signup','/signup_admin'].includes(to.path)) {
     next()
   } else {
     if (window.localStorage.getItem('token')) {

@@ -251,6 +251,7 @@ export default {
   'Sign out': '退出登录',
   'Sign-out': '退出登录',
   'Sign up': '注册',
+  'Sign Admin up': '注册管理员',
   'Sign-up': '注册',
   'Forgot Password': '忘记密码',
   'Has Account': '已有账号',

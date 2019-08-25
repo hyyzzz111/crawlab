@@ -103,7 +103,19 @@ const user = {
           })
       })
     },
-
+    // 注册
+    async adminRegister ({ dispatch, commit, state }, userInfo) {
+      try {
+        const { data } = await request.put('/system/register_admin', { username: userInfo.username, password: userInfo.password })
+        const token = data.data
+        await dispatch('system/getSettings', { forceMode: true }, { root: true })
+        commit('SET_TOKEN', token)
+        window.localStorage.setItem('token', token)
+        await this.$router.push('/')
+      } catch (e) {
+        console.error(e)
+      }
+    },
     // 登出
     logout ({ commit, state }) {
       return new Promise((resolve, reject) => {

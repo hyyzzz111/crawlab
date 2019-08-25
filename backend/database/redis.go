@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
 	"runtime/debug"
@@ -55,6 +56,8 @@ func (r *Redis) HSet(collection string, key string, value string) error {
 		debug.PrintStack()
 		return err
 	}
+	spew.Dump(key)
+
 	return nil
 }
 

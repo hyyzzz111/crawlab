@@ -257,7 +257,6 @@ func UpdateNodeData() {
 		UpdateTs:     time.Now(),
 		UpdateTsUnix: time.Now().Unix(),
 	}
-
 	// 注册节点到Redis
 	dataBytes, err := json.Marshal(&data)
 	if err != nil {
@@ -265,6 +264,7 @@ func UpdateNodeData() {
 		debug.PrintStack()
 		return
 	}
+
 	if err := database.RedisClient.HSet("nodes", val, string(dataBytes)); err != nil {
 		log.Errorf(err.Error())
 		return

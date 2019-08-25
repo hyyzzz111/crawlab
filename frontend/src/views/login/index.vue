@@ -1,63 +1,66 @@
 <template>
   <div class="login-container">
     <canvas id="canvas"></canvas>
-    <el-form ref="loginForm" :model="loginForm" :rules="loginRules" class="login-form" auto-complete="on"
-             label-position="left">
+    <el-form :model="loginForm" :rules="loginRules" auto-complete="on" class="login-form" label-position="left"
+             ref="loginForm">
       <h3 class="title">
         CRAWLAB
       </h3>
       <el-form-item prop="username" style="margin-bottom: 28px;">
         <el-input
-          v-model="loginForm.username"
+          :placeholder="$t('Username')"
+          auto-complete="on"
           name="username"
           type="text"
-          auto-complete="on"
-          :placeholder="$t('Username')"
+          v-model="loginForm.username"
         />
       </el-form-item>
       <el-form-item prop="password" style="margin-bottom: 28px;">
         <el-input
-          :type="pwdType"
-          v-model="loginForm.password"
-          name="password"
-          auto-complete="on"
           :placeholder="$t('Password')"
-          @keyup.enter.native="onKeyEnter"/>
-      </el-form-item>
-      <el-form-item v-if="isSignUp" prop="confirmPassword" style="margin-bottom: 28px;">
-        <el-input
           :type="pwdType"
-          v-model="loginForm.confirmPassword"
-          name="password"
-          auto-complete="on"
-          :placeholder="$t('Confirm Password')"
           @keyup.enter.native="onKeyEnter"
+          auto-complete="on"
+          name="password"
+          v-model="loginForm.password"/>
+      </el-form-item>
+      <el-form-item prop="confirmPassword" style="margin-bottom: 28px;" v-if="isRoutePage('signup') || isRoutePage('signupAdmin')">
+        <el-input
+          :placeholder="$t('Confirm Password')"
+          :type="pwdType"
+          @keyup.enter.native="onKeyEnter"
+          auto-complete="on"
+          name="password"
+          v-model="loginForm.confirmPassword"
         />
       </el-form-item>
       <el-form-item style="border: none">
-        <el-button v-if="isSignUp" :loading="loading" type="primary" style="width:100%;"
-                   @click.native.prevent="handleSignup">
+        <el-button :loading="loading" @click.native.prevent="handleSignup" style="width:100%;" type="primary"
+                   v-if="isSignUp">
           {{$t('Sign up')}}
         </el-button>
-        <el-button v-if="!isSignUp" :loading="loading" type="primary" style="width:100%;"
-                   @click.native.prevent="handleLogin">
+        <el-button :loading="loading" @click.native.prevent="handleSignup" style="width:100%;" type="primary"
+                   v-if="isRoutePage('signupAdmin')">
+          {{$t('Sign Admin up')}}
+        </el-button>
+        <el-button :loading="loading" @click.native.prevent="handleLogin" style="width:100%;" type="primary"
+                   v-if="isRoutePage('login')">
           {{$t('Sign in')}}
         </el-button>
       </el-form-item>
-      <div class="alternatives">
+      <div class="alternatives" v-if="!isRoutePage('signupAdmin')">
         <div class="left">
-          <span v-if="!isSignUp" class="forgot-password">{{$t('Forgot Password')}}</span>
+          <span class="forgot-password" v-if="!isSignUp">{{$t('Forgot Password')}}</span>
         </div>
-        <div class="right">
-          <span v-if="isSignUp">{{$t('Has Account')}}, </span>
-          <span v-if="isSignUp" class="sign-in" @click="$router.push('/login')">{{$t('Sign-in')}} ></span>
-          <span v-if="!isSignUp">{{$t('New to Crawlab')}}, </span>
-          <span v-if="!isSignUp" class="sign-up" @click="$router.push('/signup')">{{$t('Sign-up')}} ></span>
+        <div class="right" v-if="config.enable_register">
+          <span v-if="isSignUp">{{$t('Has Account')}},  </span>
+          <span @click="$router.push('/login')" class="sign-in" v-if="isSignUp">{{$t('Sign-in')}} ></span>
+          <span v-if="!isSignUp">{{$t('New to Crawlab')}},</span>
+          <span @click="$router.push('/signup')" class="sign-up" v-if="!isSignUp">{{$t('Sign-up')}} ></span>
         </div>
       </div>
       <div class="tips">
-        <span>{{$t('Initial Username/Password')}}: admin/admin</span>
-        <a href="https://github.com/tikazyq/crawlab" target="_blank" style="float:right">
+        <a href="https://github.com/tikazyq/crawlab" style="float:right" target="_blank">
           <img src="https://img.shields.io/badge/github-crawlab-blue">
         </a>
       </div>
@@ -67,7 +70,11 @@
 
 <script>
 import { isValidUsername } from '../../utils/validate'
-
+import {
+  mapState,
+  mapGetters
+} from 'vuex'
+import { GetDynamicRoute } from '../../router/route_map'
 export default {
   name: 'Login',
   data () {
@@ -110,13 +117,29 @@ export default {
   },
   computed: {
     isSignUp () {
-      return this.$route.path === '/signup'
+      return this.isRoutePage('signup')
     },
     redirect () {
       return this.$route.query.redirect
-    }
+    },
+
+    ...mapGetters('system', [
+      'config'
+    ])
   },
   methods: {
+    isRoutePage (routeName) {
+      switch (this.$route.path) {
+        case '/signup':
+          return routeName === 'signup'
+        case '/login':
+          return routeName === 'login'
+        case '/signup_admin':
+          return routeName === 'signupAdmin'
+        default:
+          return false
+      }
+    },
     handleLogin () {
       this.$refs.loginForm.validate(valid => {
         if (valid) {
@@ -146,19 +169,55 @@ export default {
         }
       })
     },
+    handleSignAdminUp () {
+      this.$refs.loginForm.validate(async valid => {
+        if (valid) {
+          this.loading = true
+          try {
+            await this.$store.dispatch('user/adminRegister', this.loginForm)
+          } catch (err) {
+            this.$message.error(this.$t(err))
+          }
+          this.loading = false
+        }
+      })
+    },
     onKeyEnter () {
-      const func = this.isSignUp ? this.handleSignup : this.handleLogin
+      let func
+      console.log(this.isRoutePage('signupAdmin'))
+      if (this.isRoutePage('signupAdmin')) {
+        func = this.handleSignAdminUp
+      } else {
+        func = this.isSignUp ? this.handleSignup : this.handleLogin
+      }
       func()
     }
   },
-  mounted () {
+
+  async mounted () {
     initCanvas()
+    const config = await this.$store.dispatch('system/getSettings')
+    console.log(config)
+    if (config.enable_register) {
+      const routeName = 'sign_up'
+      this.$router.addRoutes([
+        GetDynamicRoute(routeName)
+      ])
+      await this.$store.dispatch('dynamicRouting/pushRoute', { a: 'b' })
+    }
+    if (!config.installed) {
+      this.$router.addRoutes([
+        { path: '/signup_admin', component: () => import('@/views/login/index'), hidden: true }
+      ])
+      await this.$router.push('/signup_admin')
+    }
   }
+
 }
 
 const initCanvas = () => {
-  var canvas = document.getElementById('canvas')
-  var ctx = canvas.getContext('2d')
+  const canvas = document.getElementById('canvas')
+  const ctx = canvas.getContext(`2d`)
 
   resize()
   window.onresize = resize
@@ -275,7 +334,7 @@ const initCanvas = () => {
 }
 </script>
 
-<style rel="stylesheet/scss" lang="scss">
+<style lang="scss" rel="stylesheet/scss">
   $bg: #2d3a4b;
   $light_gray: #eee;
 
@@ -324,7 +383,7 @@ const initCanvas = () => {
   }
 </style>
 
-<style rel="stylesheet/scss" lang="scss" scoped>
+<style lang="scss" rel="stylesheet/scss" scoped>
   $bg: transparent;
   $dark_gray: #889aa4;
   $light_gray: #aaa;

@@ -19,7 +19,7 @@ const request = (method, path, params, data) => {
       .then(resolve)
       .catch(error => {
         console.log(error)
-        if (error.response.status === 401) {
+        if (error.response.status === 401 && router.currentRoute.path !== '/login') {
           router.push('/login')
         }
         reject(error)

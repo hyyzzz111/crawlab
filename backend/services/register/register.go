@@ -25,6 +25,7 @@ func (mac *MacRegister) GetKey() string {
 }
 
 func (mac *MacRegister) GetValue() (string, error) {
+	//return "28:cf:e9:1c:24:e8",nil
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		log.Errorf("get interfaces error:" + err.Error())

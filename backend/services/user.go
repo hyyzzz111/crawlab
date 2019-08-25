@@ -2,8 +2,8 @@ package services
 
 import (
 	"crawlab/constants"
+	"crawlab/database"
 	"crawlab/model"
-	"crawlab/utils"
 	"errors"
 	"github.com/apex/log"
 	"github.com/dgrijalva/jwt-go"
@@ -14,15 +14,23 @@ import (
 )
 
 func InitUserService() error {
-	adminUser := model.User{
-		Username: "admin",
-		Password: utils.EncryptPassword("admin"),
-		Role:     constants.RoleAdmin,
+	defaultRoles := []interface{}{
+		model.Role{Id: bson.NewObjectId(), CreateTs: time.Now(), Name: "超级管理员", Alias: constants.RoleAdmin, Enabled: true},
 	}
-	if err := adminUser.Add(); err != nil {
-		// pass
-	}
-	return nil
+	_, col := database.GetCol("roles")
+	_ = col.DropCollection()
+
+	err := col.Insert(defaultRoles...)
+
+	//adminUser := model.User{
+	//	Username: "admin",
+	//	Password: utils.EncryptPassword("admin"),
+	//	Role:     constants.RoleAdmin,
+	//}
+	//if err := adminUser.Add(); err != nil {
+	//	// pass
+	//}
+	return err
 }
 
 func GetToken(username string) (tokenStr string, err error) {
@@ -52,7 +60,7 @@ func SecretFunc() jwt.Keyfunc {
 	}
 }
 
-func CheckToken(tokenStr string) (user model.User, err error) {
+func CheckToken(tokenStr string) (user *model.User, err error) {
 	token, err := jwt.Parse(tokenStr, SecretFunc())
 	if err != nil {
 		return
