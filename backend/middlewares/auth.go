@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"crawlab/model"
+	"crawlab/constants"
 	"crawlab/routes"
 	"crawlab/services"
 	"github.com/gin-gonic/gin"
@@ -22,7 +22,7 @@ func TryGetAuthorizationMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		c.Set("currentUser", user)
+		c.Set(constants.ContextCurrentUserKey, user)
 
 		//// 如果为普通权限，校验请求地址是否符合要求
 		//if user.Role == constants.RoleNormal {
@@ -58,7 +58,7 @@ func AuthorizationMiddleware() gin.HandlerFunc {
 			})
 			return
 		}
-		c.Set("currentUser", user)
+		c.Set(constants.ContextCurrentUserKey, user)
 
 		//// 如果为普通权限，校验请求地址是否符合要求
 		//if user.Role == constants.RoleNormal {

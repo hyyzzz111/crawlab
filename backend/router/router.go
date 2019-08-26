@@ -28,13 +28,13 @@ const (
 )
 
 type Route struct {
-	Method   HTTPMethod
-	Path     string
-	I18n     string
-	Alias    string
-	Handlers gin.HandlersChain
-	Handler  gin.HandlerFunc
-	Router   string
+	Method       HTTPMethod
+	Path         string
+	RuleI18n     string
+	RuleTemplate string
+	Handlers     gin.HandlersChain
+	Handler      gin.HandlerFunc
+	Router       string
 }
 type RouteManger struct {
 	RouterGroup map[string]*gin.RouterGroup
@@ -77,8 +77,8 @@ func (rm *RouteManger) RegisterRoute(route Route, groupAlias string, groupI18n s
 		rm.AppendRule(model.Rule{
 			Method:     string(route.Method),
 			Path:       route.Path,
-			I18n:       route.I18n,
-			Alias:      route.Alias,
+			I18n:       route.RuleI18n,
+			Alias:      route.RuleTemplate,
 			Type:       model.RuleTypeSystem,
 			GroupAlias: groupAlias,
 			GroupI18n:  groupI18n,
