@@ -46,9 +46,12 @@ func InitMongo() error {
 			uri = "mongodb://" + mongoUsername + ":" + mongoPassword + "@" + mongoHost + ":" + mongoPort + "/" + mongoDb + "?authSource=" + mongoAuth
 		}
 		sess, err := mgo.DialWithTimeout(uri, time.Second*5)
+
 		if err != nil {
 			return err
 		}
+		sess.SetPoolLimit(100)
+		sess.SetPoolTimeout(time.Second * 10)
 		Session = sess
 	}
 	return nil
