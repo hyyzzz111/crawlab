@@ -120,6 +120,6 @@ tmp/
 _book/
 .idea
 *.lock
-
+/backend/backend
 backend/spiders
 spiders/*.zip
