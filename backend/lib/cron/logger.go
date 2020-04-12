@@ -14,7 +14,7 @@ var DefaultLogger = PrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))
 // DiscardLogger can be used by callers to discard all log messages.
 var DiscardLogger = PrintfLogger(log.New(ioutil.Discard, "", 0))
 
-// Logger is the interface used in this package for logging, so that any backend
+// LoggerWrapper is the interface used in this package for logging, so that any backend
 // can be plugged in. It is a subset of the github.com/go-logr/logr interface.
 type Logger interface {
 	// Info logs routine messages about cron's operation.
@@ -24,13 +24,13 @@ type Logger interface {
 }
 
 // PrintfLogger wraps a Printf-based logger (such as the standard library "log")
-// into an implementation of the Logger interface which logs errors only.
+// into an implementation of the LoggerWrapper interface which logs errors only.
 func PrintfLogger(l interface{ Printf(string, ...interface{}) }) Logger {
 	return printfLogger{l, false}
 }
 
 // VerbosePrintfLogger wraps a Printf-based logger (such as the standard library
-// "log") into an implementation of the Logger interface which logs everything.
+// "log") into an implementation of the LoggerWrapper interface which logs everything.
 func VerbosePrintfLogger(l interface{ Printf(string, ...interface{}) }) Logger {
 	return printfLogger{l, true}
 }

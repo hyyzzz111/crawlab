@@ -183,11 +183,11 @@ ensures that invocations have a clear happens-before ordering between them.
 
 Logging
 
-Cron defines a Logger interface that is a subset of the one defined in
+Cron defines a LoggerWrapper interface that is a subset of the one defined in
 github.com/go-logr/logr. It has two logging levels (Info and Error), and
 parameters are key/value pairs. This makes it possible for cron logging to plug
 into structured logging systems. An adapter, [Verbose]PrintfLogger, is provided
-to wrap the standard library *log.Logger.
+to wrap the standard library *log.LoggerWrapper.
 
 For additional insight into Cron operations, verbose logging may be activated
 which will record job runs, scheduling decisions, and added or removed jobs.

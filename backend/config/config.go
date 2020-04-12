@@ -15,7 +15,7 @@ type Config struct {
 func (c *Config) WatchConfig() {
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Printf("Config file changed: %s", e.Name)
+		log.Printf("options file changed: %s", e.Name)
 	})
 }
 

@@ -28,7 +28,7 @@ func TestExists(t *testing.T) {
 
 func TestIsDir(t *testing.T) {
 	var pathString = "../config"
-	var fileString = "../config/config.go"
+	var fileString = "../config/options.go"
 	var wrongString = "test"
 
 	Convey("Test path is folder or not", t, func() {
