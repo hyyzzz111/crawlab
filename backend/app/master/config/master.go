@@ -1,11 +1,11 @@
 package config
 
+import "crawlab/embed/raftserver"
+
 type MasterNodeConfig struct {
 	MemoryRegistry struct {
 	}
 	Cors struct {
 	}
-	Raft struct {
-		InitialCluster []string `yaml:"initial_cluster"`
-	}
+	RaftServer *raftserver.Config
 }

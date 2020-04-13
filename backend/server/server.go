@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crawlab/app/master/config"
+	"crawlab/embed/raftserver/membership"
 	"crawlab/pkg/core/broker"
 	"crawlab/runtime"
 	"crawlab/server/master"
@@ -12,12 +13,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lni/dragonboat/v3"
 	config2 "github.com/lni/dragonboat/v3/config"
+	"github.com/urfave/cli/v2"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -74,20 +77,7 @@ func (b *AppLauncher) selectServer() (srv *http.Server, err error) {
 	return nil, errors.New("error")
 }
 func (b *AppLauncher) F() error {
-	datadir := filepath.Join(
-		"example-data",
-		"helloworld-data",
-		fmt.Sprintf("node%d", 1))
-	nhc := config2.NodeHostConfig{
-		WALDir:         datadir,
-		NodeHostDir:    datadir,
-		RTTMillisecond: 200,
-		RaftAddress:    "localhost:10086",
-	}
-	_, err := dragonboat.NewNodeHost(nhc)
-	if err != nil {
-		return err
-	}
+
 	//if err:= nh.StartOnDiskCluster()
 	return nil
 }

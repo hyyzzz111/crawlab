@@ -31,35 +31,27 @@ help:
 
 
 GOBIN ?= $(GOPATH)/bin
-GOPROXY ?= https://goproxy.io
-GOPROXY_ENV = GOPROXY=$(GOPROXY)
+goproxy := $(shell go env GOPROXY)
 
-MOD_OUTDATED_COMMAND := ${GOBIN}/go-mod-outdated
 ENUMER_COMMAND :=$(GOBIN)/enumer
-GRPC_COMMAND :=${GOBIN}/protoc-gen-go
+COMMAND_GEN_GRPC :=${GOBIN}/protoc-gen-go
 GOPATH :=$(GOPATH)
-check-mod-outdated-command:
-	@if [ ! -f $(MOD_OUTDATED_COMMAND) ]; then cd $(GOPATH);go install github.com/psampaz/go-mod-outdated;fi
-mod-outdated: check-mod-outdated-command
-	cd $(BASEDIR) && go list -u -m -json all | $(MOD_OUTDATED_COMMAND) -direct
-mod-outdated-update: check-mod-outdated-command
-	cd $(BASEDIR) && go list -u -m -json all | $(MOD_OUTDATED_COMMAND) -update -direct
-mod-outdated-all: check-mod-outdated-command
-	cd $(BASEDIR) && go list -u -m -json all | $(MOD_OUTDATED_COMMAND) -style markdown
-check-enumber-command:
-	 @if [ ! -f $(ENUMER_COMMAND) ]; then  cd $(GOPATH);go install github.com/yaziming/enumer;fi
-check-grpc-command:
-	@if [ ! -f $(GRPC_COMMAND) ]; then cd $(GOPATH);go install github.com/golang/protobuf/protoc-gen-go;fi
-
-boot_development:check-enumber-command check-mod-outdated-command check-grpc-command
-
-go-generate: check-enumber-command
-
-	cd $(BASEDIR) && go generate *.go
+COMMAND_GOBIN := GOBIN/gobin
+COMMAN_MOD_OUTDATED := ${GOBIN}/go-mod-outdated
 
 go-env:
-	go env -w GO111MODULE=on && go env -w "GOPROXY=https://goproxy.cn,https://goproxy.io,direct"
-#	&& go env -w GOPRIVATE=*.corp.example.com
+	@if [ ! $(goproxy) ]; then go env -w GO111MODULE=on && go env -w "GOPROXY=https://goproxy.cn,https://goproxy.io,direct";fi;
+pre: go-env
+	@if [ ! -f $(COMMAND_GOBIN) ];  then GO111MODULE=off go get -u github.com/myitcv/gobin;fi
+	@if [ ! -f $(COMMAN_MOD_OUTDATED) ]; then COMMAND_GOBIN github.com/psampaz/go-mod-outdated;fi
+	@if [ ! -f $(COMMAND_GEN_GRPC) ]; then COMMAND_GOBIN github.com/golang/protobuf/protoc-gen-go;fi
+
+outdated: pre
+	@go list -u -m -json all | $(COMMAN_MOD_OUTDATED) -direct -update -style markdon
+
+
+go-generate: pre
+	go generate *.go
 
 run-master:
 	go run $(BASEDIR)/app/master/main.go start --config="$(BASEDIR)/../statics/config.yml"
