@@ -218,6 +218,7 @@ Crawlab is easy to use, general enough to adapt spiders in any language and any 
 <a href="https://github.com/hantmac">
   <img src="https://avatars2.githubusercontent.com/u/7600925?s=460&v=4" height="80">
 </a>
+<a href="https://app.fossa.io/projects/git%2Bgithub.com%2Fyaziming%2Fcrawlab?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.io/api/projects/git%2Bgithub.com%2Fyaziming%2Fcrawlab.svg?type=shield"/></a>
 
 ## Community & Sponsorship
 
@@ -227,3 +228,7 @@ If you feel Crawlab could benefit your daily work or your company, please add th
     <img src="https://crawlab.oss-cn-hangzhou.aliyuncs.com/gitbook/qrcode.png" height="360">
     <img src="https://crawlab.oss-cn-hangzhou.aliyuncs.com/gitbook/payment.jpg" height="360">
 </p>
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fyaziming%2Fcrawlab.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fyaziming%2Fcrawlab?ref=badge_large)
