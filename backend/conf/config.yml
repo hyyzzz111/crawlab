@@ -1,3 +1,4 @@
+pro: true
 api:
   address: "localhost:8000"
 mongo:
@@ -38,7 +39,7 @@ task:
   workers: 4
 other:
   tmppath: "/tmp"
-version: 0.4.10
+version: 0.1.0
 setting:
   allowRegister: "N"
   enableTutorial: "N"

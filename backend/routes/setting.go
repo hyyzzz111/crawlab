@@ -11,6 +11,7 @@ type SettingBody struct {
 	EnableTutorial    string `json:"enable_tutorial"`
 	RunOnMaster       string `json:"run_on_master"`
 	EnableDemoSpiders string `json:"enable_demo_spiders"`
+	IsPro             bool   `json:"is_pro"`
 }
 
 func GetVersion(c *gin.Context) {
@@ -29,6 +30,7 @@ func GetSetting(c *gin.Context) {
 		EnableTutorial:    viper.GetString("setting.enableTutorial"),
 		RunOnMaster:       viper.GetString("setting.runOnMaster"),
 		EnableDemoSpiders: viper.GetString("setting.enableDemoSpiders"),
+		IsPro:             viper.GetBool("pro"),
 	}
 
 	c.JSON(http.StatusOK, Response{

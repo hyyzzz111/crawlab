@@ -290,6 +290,8 @@ func main() {
 			authGroup.GET("/git/public-key", routes.GetGitSshPublicKey) // 获取 SSH 公钥
 			authGroup.GET("/git/commits", routes.GetGitCommits)         // 获取 Git Commits
 			authGroup.POST("/git/checkout", routes.PostGitCheckout)     // 获取 Git Commits
+			// 监控
+			authGroup.GET("/monitor/mongo", routes.GetMongoStats) // 获取 MongoDB 数据
 		}
 	}
 
