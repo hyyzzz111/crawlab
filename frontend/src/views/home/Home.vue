@@ -88,21 +88,30 @@ export default {
     },
     onClickMetric (m) {
       this.$router.push(`/${m.path}`)
+    },
+    async getBasicStats () {
+      const res = await this.$request.get('/stats/home')
+
+      // overview stats
+      this.overviewStats = res.data.data.overview
+
+      // daily tasks
+      this.dailyTasks = res.data.data.daily
+      this.initEchartsDailyTasks()
+    },
+    async getMonitorStats () {
+      await this.getMongoStats()
+    },
+    async getMongoStats () {
+      const res = await this.$request.get('/monitor/mongo')
+      console.log(res)
     }
   },
-  created () {
-    request.get('/stats/home')
-      .then(response => {
-        // overview stats
-        this.overviewStats = response.data.data.overview
-
-        // daily tasks
-        this.dailyTasks = response.data.data.daily
-        this.initEchartsDailyTasks()
-      })
+  async created () {
+    await this.getBasicStats()
+    await this.getMonitorStats()
   },
   mounted () {
-    // this.$ba.trackPageview('/')
   }
 }
 </script>
