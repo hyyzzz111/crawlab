@@ -36,3 +36,12 @@ type Dependency struct {
 type PackageJson struct {
 	Dependencies map[string]string `json:"dependencies"`
 }
+
+type RedisMemoryStats struct {
+	PeakAllocated    int64 `json:"peak_allocated"`
+	TotalAllocated   int64 `json:"total_allocated"`
+	StartupAllocated int64 `json:"startup_allocated"`
+	OverheadTotal    int64 `json:"overhead_total"`
+	KeysCount        int64 `json:"keys_count"`
+	DatasetBytes     int64 `json:"dataset_bytes"`
+}

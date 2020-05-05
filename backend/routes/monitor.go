@@ -13,6 +13,20 @@ func GetMongoStats(c *gin.Context) {
 	stats := bson.M{}
 	if err := db.Run("dbstats", &stats); err != nil {
 		HandleErrorF(http.StatusInternalServerError, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, Response{
+		Status:  "ok",
+		Message: "success",
+		Data:    stats,
+	})
+}
+
+func GetRedisStats(c *gin.Context) {
+	stats, err := database.RedisClient.MemoryStats()
+	if err != nil {
+		HandleErrorF(http.StatusInternalServerError, c, err.Error())
+		return
 	}
 	c.JSON(http.StatusOK, Response{
 		Status:  "ok",

@@ -101,9 +101,14 @@ export default {
     },
     async getMonitorStats () {
       await this.getMongoStats()
+      await this.getRedisStats()
     },
     async getMongoStats () {
       const res = await this.$request.get('/monitor/mongo')
+      console.log(res)
+    },
+    async getRedisStats () {
+      const res = await this.$request.get('/monitor/redis')
       console.log(res)
     }
   },
