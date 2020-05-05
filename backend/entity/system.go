@@ -47,6 +47,10 @@ type RedisMemoryStats struct {
 }
 
 type NodeStats struct {
-	TotalMemory uint64 `json:"total_memory"`
-	MemoryUsage uint64 `json:"memory_usage"`
+	MemoryTotal      uint64  `json:"total_memory"`
+	MemoryUsage      uint64  `json:"memory_usage"`
+	CpuUsagePercent  float64 `json:"cpu_usage_percent"`
+	DiskTotal        uint64  `json:"disk_total"`
+	DiskUsage        uint64  `json:"disk_usage"`
+	DiskUsagePercent float64 `json:"disk_usage_percent"`
 }
