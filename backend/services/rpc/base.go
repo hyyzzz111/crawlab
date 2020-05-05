@@ -72,6 +72,8 @@ func GetService(msg entity.RpcMessage) Service {
 		return &GetLangService{msg: msg}
 	case constants.RpcGetInstalledDepList:
 		return &GetInstalledDepsService{msg: msg}
+	case constants.RpcGetNodeStats:
+		return &GetNodeStatsService{msg: msg}
 	}
 	return nil
 }

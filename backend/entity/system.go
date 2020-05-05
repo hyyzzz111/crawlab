@@ -45,3 +45,8 @@ type RedisMemoryStats struct {
 	KeysCount        int64 `json:"keys_count"`
 	DatasetBytes     int64 `json:"dataset_bytes"`
 }
+
+type NodeStats struct {
+	TotalMemory uint64 `json:"total_memory"`
+	MemoryUsage uint64 `json:"memory_usage"`
+}

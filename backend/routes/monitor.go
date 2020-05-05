@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"crawlab/constants"
 	"crawlab/database"
+	"crawlab/entity"
+	"crawlab/services/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 	"net/http"
@@ -28,6 +31,28 @@ func GetRedisStats(c *gin.Context) {
 		HandleErrorF(http.StatusInternalServerError, c, err.Error())
 		return
 	}
+	c.JSON(http.StatusOK, Response{
+		Status:  "ok",
+		Message: "success",
+		Data:    stats,
+	})
+}
+
+func GetNodeStats(c *gin.Context) {
+	nodeId := c.Param("id")
+
+	s := rpc.GetService(entity.RpcMessage{
+		NodeId:  nodeId,
+		Method:  constants.RpcGetNodeStats,
+		Timeout: 60,
+	})
+
+	stats, err := s.ClientHandle()
+	if err != nil {
+		HandleErrorF(http.StatusInternalServerError, c, err.Error())
+		return
+	}
+
 	c.JSON(http.StatusOK, Response{
 		Status:  "ok",
 		Message: "success",

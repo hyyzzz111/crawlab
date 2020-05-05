@@ -312,8 +312,9 @@ func main() {
 			authGroup.GET("/git/commits", routes.GetGitCommits)         // 获取 Git Commits
 			authGroup.POST("/git/checkout", routes.PostGitCheckout)     // 获取 Git Commits
 			// 监控
-			authGroup.GET("/monitor/mongo", routes.GetMongoStats) // 获取 MongoDB 数据
-			authGroup.GET("/monitor/redis", routes.GetRedisStats) // 获取 Redis 数据
+			authGroup.GET("/monitor/mongo", routes.GetMongoStats)    // 获取 MongoDB 性能数据
+			authGroup.GET("/monitor/redis", routes.GetRedisStats)    // 获取 Redis 性能数据
+			authGroup.GET("/monitor/nodes/:id", routes.GetNodeStats) // 获取节点性能数据
 		}
 	}
 

@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/Masterminds/semver v1.4.2 // indirect
 	github.com/Masterminds/sprig v2.16.0+incompatible // indirect
+	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/Unknwon/goconfig v0.0.0-20191126170842-860a72fb44fd
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc
 	github.com/aokoli/goutils v1.0.1 // indirect
@@ -13,6 +14,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-gonic/gin v1.4.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -27,6 +29,7 @@ require (
 	github.com/olivere/elastic/v7 v7.0.14
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
+	github.com/shirou/gopsutil v2.20.4+incompatible
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337
 	github.com/spf13/viper v1.4.0

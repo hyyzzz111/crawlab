@@ -43,7 +43,6 @@
 </template>
 
 <script>
-import request from '../../api/request'
 import echarts from 'echarts'
 
 export default {
@@ -102,6 +101,7 @@ export default {
     async getMonitorStats () {
       await this.getMongoStats()
       await this.getRedisStats()
+      await this.getNodesStats()
     },
     async getMongoStats () {
       const res = await this.$request.get('/monitor/mongo')
@@ -110,6 +110,13 @@ export default {
     async getRedisStats () {
       const res = await this.$request.get('/monitor/redis')
       console.log(res)
+    },
+    async getNodesStats () {
+      const res = await this.$request.get('/nodes')
+      res.data.data.forEach(async d => {
+        const res = await this.$request.get('/monitor/nodes/' + d._id)
+        console.log(res)
+      })
     }
   },
   async created () {
