@@ -195,6 +195,7 @@ export const constantRouterMap = [
   {
     path: '/challenges',
     component: Layout,
+    hidden: true,
     meta: {
       title: 'ChallengeList',
       icon: 'fa fa-flash'

@@ -8,6 +8,7 @@ import (
 	"github.com/apex/log"
 	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
+	"reflect"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -243,4 +244,36 @@ func (r *Redis) UnLock(lockKey string, value int64) {
 		log.Errorf("unlock failed: key=%s", lockKey)
 		return
 	}
+}
+
+func (r *Redis) MemoryStats() (stats entity.RedisMemoryStats, err error) {
+	c := r.pool.Get()
+	defer utils.Close(c)
+	values, err := redis.Values(c.Do("MEMORY", "STATS"))
+	for i, v := range values {
+		t := reflect.TypeOf(v)
+		if t.Kind() == reflect.Slice {
+			vc, _ := redis.String(v, err)
+			switch vc {
+			case "peak.allocated":
+				stats.PeakAllocated, _ = redis.Int64(values[i+1], err)
+			case "total.allocated":
+				stats.TotalAllocated, _ = redis.Int64(values[i+1], err)
+			case "startup.allocated":
+				stats.StartupAllocated, _ = redis.Int64(values[i+1], err)
+			case "overhead.total":
+				stats.OverheadTotal, _ = redis.Int64(values[i+1], err)
+			case "keys.count":
+				stats.KeysCount, _ = redis.Int64(values[i+1], err)
+			case "dataset.bytes":
+				stats.DatasetBytes, _ = redis.Int64(values[i+1], err)
+			}
+		}
+	}
+	if err != nil {
+		log.Errorf("memory stats error: %s", err.Error())
+		debug.PrintStack()
+		return stats, err
+	}
+	return stats, nil
 }
