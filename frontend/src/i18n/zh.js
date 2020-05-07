@@ -539,6 +539,17 @@ export default {
     cron_format: 'Cron 格式: [秒] [分] [小时] [日] [月] [周]'
   },
 
+  // 监控
+  'Disk': '磁盘',
+  'Storage Size': '储存大小',
+  'Memory': '内存',
+  'CPU': 'CPU',
+  'Index Size': '索引大小',
+  'Total Allocated': '总分配内存',
+  'Peak Allocated': '峰值内存',
+  'Dataset Size': '数据大小',
+  'Overhead Size': '额外开销',
+
   // 内容
   addNodeInstruction: `
 您不能在 Crawlab 的 Web 界面直接添加节点。

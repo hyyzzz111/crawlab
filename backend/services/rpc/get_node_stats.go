@@ -34,6 +34,7 @@ func (s *GetNodeStatsService) ClientHandle() (o interface{}, err error) {
 	if err := json.Unmarshal([]byte(s.msg.Result), &output); err != nil {
 		return o, err
 	}
+	output.MemoryUsagePercent = float64(output.MemoryUsage) / float64(output.MemoryTotal) * 100
 	o = output
 
 	return
