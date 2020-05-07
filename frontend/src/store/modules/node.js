@@ -33,19 +33,17 @@ const mutations = {
 }
 
 const actions = {
-  getNodeList ({ state, commit }) {
-    request.get('/nodes', {})
-      .then(response => {
-        commit('SET_NODE_LIST', response.data.data.map(d => {
-          d.systemInfo = {
-            os: '',
-            arch: '',
-            num_cpu: '',
-            executables: []
-          }
-          return d
-        }))
-      })
+  async getNodeList ({ state, commit }) {
+    const res = await request.get('/nodes', {})
+    commit('SET_NODE_LIST', res.data.data.map(d => {
+      d.systemInfo = {
+        os: '',
+        arch: '',
+        num_cpu: '',
+        executables: []
+      }
+      return d
+    }))
   },
   editNode ({ state, dispatch }) {
     request.post(`/nodes/${state.nodeForm._id}`, state.nodeForm)

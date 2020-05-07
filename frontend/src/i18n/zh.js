@@ -549,6 +549,8 @@ export default {
   'Peak Allocated': '峰值内存',
   'Dataset Size': '数据大小',
   'Overhead Size': '额外开销',
+  'Disk Usage': '磁盘使用量',
+  'Memory Usage': '内存使用量',
 
   // 内容
   addNodeInstruction: `

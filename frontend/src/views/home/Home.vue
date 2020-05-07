@@ -37,7 +37,7 @@
                 {{$t('Disk')}}
               </span>
               <el-progress
-                :stroke-width="20"
+                :stroke-width="18"
                 :percentage="mongoDiskPercent"
                 text-inside
                 :status="getProgressStatus(mongoDiskPercent)"
@@ -48,7 +48,7 @@
                 {{$t('Memory')}}
               </span>
               <el-progress
-                :stroke-width="20"
+                :stroke-width="18"
                 :percentage="mongoMemoryPercent"
                 text-inside
                 :status="getProgressStatus(mongoMemoryPercent)"
@@ -136,6 +136,76 @@
             </div>
           </div>
         </li>
+        <li
+          v-for="node in nodeList"
+          :key="node._id"
+          class="performance-metric-item node"
+          :class="node.is_master ? 'master' : 'worker'"
+        >
+          <div class="performance-metric-title">
+            <i class="fa fa-server"></i>
+            {{node.name}}{{node.is_master ? (' (' + $t('Master') + ')') : ''}}
+          </div>
+          <div class="performance-metric-body">
+            <div class="progress-item">
+              <span class="progress-label">
+                {{$t('Disk')}}
+              </span>
+              <el-progress
+                :stroke-width="18"
+                :percentage="getNodeStatsValue(node, 'disk_usage_percent')"
+                text-inside
+                :status="getProgressStatus(getNodeStatsValue(node, 'disk_usage_percent'))"
+              />
+            </div>
+            <div class="progress-item">
+              <span class="progress-label">
+                {{$t('Memory')}}
+              </span>
+              <el-progress
+                :stroke-width="18"
+                :percentage="getNodeStatsValue(node, 'memory_usage_percent')"
+                text-inside
+                :status="getProgressStatus(getNodeStatsValue(node, 'memory_usage_percent'))"
+              />
+            </div>
+            <div class="progress-item">
+              <span class="progress-label">
+                {{$t('CPU')}}
+              </span>
+              <el-progress
+                :stroke-width="18"
+                :percentage="getNodeStatsValue(node, 'cpu_usage_percent')"
+                text-inside
+                :status="getProgressStatus(getNodeStatsValue(node, 'cpu_usage_percent'))"
+              />
+            </div>
+            <div class="progress-item">
+              <span class="progress-label">
+                {{$t('Disk Usage')}}
+              </span>
+              <el-tag
+                text-inside
+                size="small"
+                type="primary"
+              >
+                {{getSize(getNodeStatsValue(node, 'disk_usage'))}} GB
+              </el-tag>
+            </div>
+            <div class="progress-item">
+              <span class="progress-label">
+                {{$t('Memory Usage')}}
+              </span>
+              <el-tag
+                text-inside
+                size="small"
+                type="primary"
+              >
+                {{getSize(getNodeStatsValue(node, 'memory_usage'))}} GB
+              </el-tag>
+            </div>
+          </div>
+        </li>
       </ul>
     </el-row>
     <!--./overall metrics-->
@@ -151,6 +221,9 @@
 </template>
 
 <script>
+import {
+  mapState
+} from 'vuex'
 import echarts from 'echarts'
 
 export default {
@@ -169,15 +242,23 @@ export default {
         { name: 'schedule_count', label: 'Schedules', icon: 'fa fa-clock-o', color: 'orange', path: 'schedules' },
         { name: 'project_count', label: 'Projects', icon: 'fa fa-code-fork', color: 'grey', path: 'projects' }
       ],
-      // mongo related
+      // mongo stats
       mongoStats: {
         db_stats: {},
         mem_stats: {}
       },
-      redisStats: {}
+      // redis stats
+      redisStats: {},
+      // nodes stats
+      nodeStatsDict: {},
+      // handles
+      statsHandle: undefined
     }
   },
   computed: {
+    ...mapState('node', [
+      'nodeList'
+    ]),
     mongoDiskPercent () {
       return Math.round(this.mongoStats.db_stats.fsUsedSize / this.mongoStats.db_stats.fsTotalSize * 100)
     },
@@ -258,11 +339,11 @@ export default {
       this.redisStats = res.data.data
     },
     async getNodesStats () {
-      const res = await this.$request.get('/nodes')
-      res.data.data.forEach(async d => {
+      await this.$store.dispatch('node/getNodeList')
+      await Promise.all(this.nodeList.map(async d => {
         const res = await this.$request.get('/monitor/nodes/' + d._id)
-        console.log(res)
-      })
+        this.$set(this.nodeStatsDict, d._id, res.data.data)
+      }))
     },
     getProgressStatus (value) {
       if (value >= 80) {
@@ -272,13 +353,29 @@ export default {
       } else {
         return 'success'
       }
+    },
+    getNodeStatsValue (node, key) {
+      if (!this.nodeStatsDict[node._id]) return 0
+      return Math.round(this.nodeStatsDict[node._id][key])
+    },
+    getSize (bytes) {
+      return (bytes / 1024 / 1024 / 1024).toFixed(2)
+    },
+    async getAllStats () {
+      await this.getBasicStats()
+      await this.getMonitorStats()
     }
   },
   async created () {
-    await this.getBasicStats()
-    await this.getMonitorStats()
+    await this.getAllStats()
+    this.statsHandle = setInterval(() => {
+      this.getAllStats()
+    }, 15000)
   },
   mounted () {
+  },
+  destroyed () {
+    clearInterval(this.statsHandle)
   }
 }
 </script>
@@ -369,15 +466,17 @@ export default {
   .performance-metric-list {
     list-style: none;
     display: flex;
-    margin: 0 0 20px;
+    margin: 0;
     padding: 0;
+    flex-wrap: wrap;
 
     .performance-metric-item {
       width: 270px;
       height: 270px;
       border: 1px solid #EBEEF5;
       border-radius: 5px;
-      margin-right: 20px;
+      margin-right: 19px;
+      margin-bottom: 20px;
 
       .performance-metric-title {
         border-top-left-radius: 5px;
@@ -399,7 +498,7 @@ export default {
         .progress-item {
           display: flex;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
 
           .progress-label {
             flex-basis: 80px;
@@ -424,6 +523,14 @@ export default {
 
     .performance-metric-item.redis .performance-metric-title {
       background: #f56c6c;
+    }
+
+    .performance-metric-item.node.master .performance-metric-title {
+      background: #409EFF;
+    }
+
+    .performance-metric-item.node.worker .performance-metric-title {
+      background: #E6A23C;
     }
   }
 
