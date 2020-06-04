@@ -6,8 +6,7 @@
           v-model="isLogAutoScroll"
           :inactive-text="$t('Auto-Scroll')"
           style="margin-right: 10px"
-        >
-        </el-switch>
+        />
         <!--        <el-switch-->
         <!--          v-model="isLogAutoFetch"-->
         <!--          :inactive-text="$t('Auto-Refresh')"-->
@@ -28,7 +27,7 @@
           icon="el-icon-search"
           @click="onSearchLog"
         >
-          {{$t('Search Log')}}
+          {{ $t('Search Log') }}
         </el-button>
       </div>
       <div class="right">
@@ -51,7 +50,7 @@
             icon="el-icon-warning-outline"
             @click="toggleErrors"
           >
-            {{$t('Error Count')}}
+            {{ $t('Error Count') }}
           </el-button>
         </el-badge>
       </div>
@@ -63,8 +62,8 @@
         :class="isErrorsCollapsed ? 'errors-collapsed' : ''"
       >
         <virtual-list
-          class="log-view"
           ref="log-view"
+          class="log-view"
           :start="currentLogIndex - 1"
           :offset="0"
           :size="18"
@@ -90,7 +89,7 @@
             @click="onClickError(item)"
           >
             <span class="line-content">
-              {{item.msg}}
+              {{ item.msg }}
             </span>
           </li>
         </ul>
@@ -122,7 +121,7 @@ export default {
       default: ''
     }
   },
-  data () {
+  data() {
     return {
       item: LogItem,
       searchString: '',
@@ -146,82 +145,82 @@ export default {
       'logData'
     ]),
     currentLogIndex: {
-      get () {
+      get() {
         return this.$store.state.task.currentLogIndex
       },
-      set (value) {
+      set(value) {
         this.$store.commit('task/SET_CURRENT_LOG_INDEX', value)
       }
     },
     logKeyword: {
-      get () {
+      get() {
         return this.$store.state.task.logKeyword
       },
-      set (value) {
+      set(value) {
         this.$store.commit('task/SET_LOG_KEYWORD', value)
       }
     },
     taskLogPage: {
-      get () {
+      get() {
         return this.$store.state.task.taskLogPage
       },
-      set (value) {
+      set(value) {
         this.$store.commit('task/SET_TASK_LOG_PAGE', value)
       }
     },
     taskLogPageSize: {
-      get () {
+      get() {
         return this.$store.state.task.taskLogPageSize
       },
-      set (value) {
+      set(value) {
         this.$store.commit('task/SET_TASK_LOG_PAGE_SIZE', value)
       }
     },
     isLogAutoScroll: {
-      get () {
+      get() {
         return this.$store.state.task.isLogAutoScroll
       },
-      set (value) {
+      set(value) {
         this.$store.commit('task/SET_IS_LOG_AUTO_SCROLL', value)
       }
     },
     isLogAutoFetch: {
-      get () {
+      get() {
         return this.$store.state.task.isLogAutoFetch
       },
-      set (value) {
+      set(value) {
         this.$store.commit('task/SET_IS_LOG_AUTO_FETCH', value)
       }
     },
     isLogFetchLoading: {
-      get () {
+      get() {
         return this.$store.state.task.isLogFetchLoading
       },
-      set (value) {
+      set(value) {
         this.$store.commit('task/SET_IS_LOG_FETCH_LOADING', value)
       }
     },
-    filteredLogData () {
+    filteredLogData() {
       return this.logData.filter(d => {
         if (!this.searchString) return true
         return !!d.data.toLowerCase().match(this.searchString.toLowerCase())
       })
     },
-    remainSize () {
+    remainSize() {
       const height = document.querySelector('body').clientHeight
       return (height - 240) / 18
     }
   },
   watch: {
-    taskLogPage () {
+    taskLogPage() {
       this.$emit('search')
       this.$st.sendEv('任务详情', '日志', '改变页数')
     },
-    taskLogPageSize () {
+    taskLogPageSize() {
       this.$emit('search')
       this.$st.sendEv('任务详情', '日志', '改变日志每页条数')
     },
-    isLogAutoScroll () {
+    isLogAutoScroll() {
       if (this.isLogAutoScroll) {
         this.$store.dispatch('task/getTaskLog', {
           id: this.$route.params.id,
@@ -235,8 +234,19 @@ export default {
       }
     }
   },
+  mounted() {
+    this.currentLogIndex = 0
+    this.handle = setInterval(() => {
+      if (this.isLogAutoScroll) {
+        this.toBottom()
+      }
+    }, 200)
+  },
+  destroyed() {
+    clearInterval(this.handle)
+  },
   methods: {
-    getItemProps (index) {
+    getItemProps(index) {
       const logItem = this.filteredLogData[index]
       const isAnsi = hasAnsi(logItem.data)
       return {
@@ -252,21 +262,21 @@ export default {
         }
       }
     },
-    onToBottom () {
+    onToBottom() {
     },
-    onScroll () {
+    onScroll() {
     },
-    toBottom () {
+    toBottom() {
       this.$el.querySelector('.log-view').scrollTo({ top: 99999999 })
     },
-    toggleErrors () {
+    toggleErrors() {
       this.isErrorsCollapsed = !this.isErrorsCollapsed
       this.isErrorCollapsing = true
       setTimeout(() => {
         this.isErrorCollapsing = false
       }, 300)
     },
-    async onClickError (item) {
+    async onClickError(item) {
       const page = Math.ceil(item.seq / this.taskLogPageSize)
       this.$store.commit('task/SET_LOG_KEYWORD', '')
       this.$store.commit('task/SET_TASK_LOG_PAGE', page)
@@ -275,21 +285,10 @@ export default {
       this.$emit('search')
       this.$st.sendEv('任务详情', '日志', '点击错误日志')
     },
-    onSearchLog () {
+    onSearchLog() {
       this.$emit('search')
       this.$st.sendEv('任务详情', '日志', '搜索日志')
     }
-  },
-  mounted () {
-    this.currentLogIndex = 0
-    this.handle = setInterval(() => {
-      if (this.isLogAutoScroll) {
-        this.toBottom()
-      }
-    }, 200)
-  },
-  destroyed () {
-    clearInterval(this.handle)
   }
 }
 </script>

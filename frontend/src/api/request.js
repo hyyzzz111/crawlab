@@ -3,7 +3,9 @@ import router from '../router'
 import { Message } from 'element-ui'
 
 // 根据 VUE_APP_BASE_URL 生成 baseUrl
-let baseUrl = process.env.VUE_APP_BASE_URL ? process.env.VUE_APP_BASE_URL : 'http://localhost:8000'
+let baseUrl = process.env.VUE_APP_BASE_URL
+  ? process.env.VUE_APP_BASE_URL
+  : 'http://localhost:8000'
 if (!baseUrl.match(/^https?/i)) {
   baseUrl = `${window.location.protocol}//${window.location.host}${process.env.VUE_APP_BASE_URL}`
 }
@@ -30,12 +32,6 @@ const request = (method, path, params, data, others = {}) => {
     if (response.status === 200) {
       return Promise.resolve(response)
     }
-    return Promise.reject(response)
-  }).catch((e) => {
-    let response = e.response
-    if (!response) {
-      return e
-    }
     if (response.status === 400) {
       Message.error(response.data.error)
     }
@@ -45,7 +41,7 @@ const request = (method, path, params, data, others = {}) => {
     if (response.status === 500) {
       Message.error(response.data.error)
     }
-    return e
+    return Promise.reject(response)
   })
 }
 

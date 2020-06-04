@@ -22,13 +22,13 @@ const user = {
   },
 
   getters: {
-    userInfo (state) {
+    userInfo(state) {
       if (state.userInfo) return state.userInfo
       const userInfoStr = window.localStorage.getItem('user_info')
       if (!userInfoStr) return {}
       return JSON.parse(userInfoStr)
     },
-    token () {
+    token() {
       return window.localStorage.getItem('token')
     }
   },
@@ -71,10 +71,11 @@ const user = {
 
   actions: {
     // 登录
-    async login ({ commit }, userInfo) {
+    async login({ commit }, userInfo) {
       const username = userInfo.username.trim()
       let res
-      res = await request.post('/login', { username, password: userInfo.password })
+      res = await request.post('/login',
+        { username, password: userInfo.password })
       if (res.status === 200) {
         const token = res.data.data
         commit('SET_TOKEN', token)
@@ -84,7 +85,7 @@ const user = {
     },
 
     // 获取用户信息
-    getInfo ({ commit, state }) {
+    getInfo({ commit, state }) {
       return request.get('/me')
         .then(response => {
           // ensure compatibility
@@ -92,19 +93,21 @@ const user = {
             response.data.data.setting.max_error_log = 1000
           }
           commit('SET_USER_INFO', response.data.data)
-          window.localStorage.setItem('user_info', JSON.stringify(response.data.data))
+          window.localStorage.setItem('user_info',
+            JSON.stringify(response.data.data))
         })
     },
 
     // 修改用户信息
-    postInfo ({ commit }, form) {
+    postInfo({ commit }, form) {
       return request.post('/me', form)
     },
 
     // 注册
-    register ({ dispatch, commit, state }, userInfo) {
+    register({ dispatch, commit, state }, userInfo) {
       return new Promise((resolve, reject) => {
-        request.put('/users', { username: userInfo.username, password: userInfo.password })
+        request.put('/users',
+          { username: userInfo.username, password: userInfo.password })
           .then(() => {
             resolve()
           })
@@ -115,7 +118,7 @@ const user = {
     },
 
     // 登出
-    logout ({ commit, state }) {
+    logout({ commit, state }) {
       return new Promise((resolve, reject) => {
         window.localStorage.removeItem('token')
         window.localStorage.removeItem('user_info')
@@ -127,7 +130,7 @@ const user = {
     },
 
     // 获取用户列表
-    getUserList ({ commit, state }) {
+    getUserList({ commit, state }) {
       return new Promise((resolve, reject) => {
         request.get('/users', {
           page_num: state.pageNum,
@@ -141,34 +144,34 @@ const user = {
     },
 
     // 删除用户
-    deleteUser ({ state }, id) {
+    deleteUser({ state }, id) {
       return request.delete(`/users/${id}`)
     },
 
     // 编辑用户
-    editUser ({ state }) {
+    editUser({ state }) {
       return request.post(`/users/${state.userForm._id}`, state.userForm)
     },
 
     // 添加用户
-    addUser ({ dispatch, commit, state }) {
+    addUser({ dispatch, commit, state }) {
       return request.put('/users-add', state.userForm)
     },
     // 新增全局变量
-    addGlobalVariable ({ commit, state }) {
+    addGlobalVariable({ commit, state }) {
       return request.put(`/variable`, state.globalVariableForm)
         .then(() => {
           state.globalVariableForm = {}
         })
     },
     // 获取全局变量列表
-    getGlobalVariable ({ commit, state }) {
+    getGlobalVariable({ commit, state }) {
       request.get('/variables').then((response) => {
         commit('SET_GLOBAL_VARIABLE_LIST', response.data.data)
       })
     },
     // 删除全局变量
-    deleteGlobalVariable ({ commit, state }, id) {
+    deleteGlobalVariable({ commit, state }, id) {
       return request.delete(`/variable/${id}`)
     }
   }
