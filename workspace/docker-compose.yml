@@ -1,13 +1,11 @@
 version: "3.3"
 services:
-
   master:
     build:
       context: dockerfiles/golang
     command: "air -c .air.conf"
     volumes:
-    - ../backend:/backend
-    - ./log/master.log:/tmp/air.log
+      - ../backend:/backend
     depends_on:
       - mongo
       - redis
@@ -27,12 +25,10 @@ services:
     depends_on:
       - mongo
       - redis
-
     ports:
       - 8001:8000
     volumes:
       - ../backend:/backend
-      - ./log/worker-1.log:/tmp/air.log
     environment:
       CRAWLAB_MONGO_HOST: "mongo"
       CRAWLAB_REDIS_ADDRESS: "redis"
@@ -44,9 +40,6 @@ services:
     build:
       context: dockerfiles/golang
     command: "air -c .air.conf"
-      #    volumes:
-    #      - ../backend:/backend
-    #      - ./log/master.log:/tmp/air.log
     depends_on:
       - mongo
       - redis
@@ -54,7 +47,6 @@ services:
       - 8002:8000
     volumes:
       - ../backend:/backend
-      - ./log/worker-2.log:/tmp/air.log
     environment:
       CRAWLAB_MONGO_HOST: "mongo"
       CRAWLAB_REDIS_ADDRESS: "redis"
@@ -63,23 +55,21 @@ services:
       CRAWLAB_SERVER_REGISTER_TYPE: "customName"
       CRAWLAB_SERVER_REGISTER_CUSTOMNODENAME: "worker_2"
   frontend:
-     build:
-       context: ./dockerfiles/node
-       args:
-         - NPM_REGISTRY="http://registry.npm.taobao.org/"
-     container_name: crawlab_frontend
-     ports:
-     - 8080:8080
-     volumes:
-        - ../frontend:/frontend
-     command:
-       - /bin/sh
-       - -c
-       - |
-         yarn install
-         yarn run serve
-     depends_on:
-       - master
+    build:
+      context: ./dockerfiles/node
+    container_name: crawlab_frontend
+    ports:
+      - 8080:8080
+    volumes:
+      - ../frontend:/frontend
+    command:
+      - /bin/sh
+      - -c
+      - |
+        yarn install
+        yarn run serve
+    depends_on:
+      - master
   mongo:
     image: mongo:latest
     restart: always
