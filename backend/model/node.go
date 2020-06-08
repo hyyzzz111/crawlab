@@ -218,6 +218,7 @@ func UpdateMasterNodeInfo(key string, ip string, mac string, hostname string) er
 			"mac":            mac,
 			"hostname":       hostname,
 			"is_master":      true,
+			"status":         "online",
 			"update_ts":      time.Now(),
 			"update_ts_unix": time.Now().Unix(),
 		},

@@ -50,7 +50,7 @@ spec:
           value: "Y"
         - name: CRAWLAB_SETTING_ENABLETUTORIAL
           value: "Y"
-        - name: CRAWLAB_SETTING_DEMOSPIDERS
+        - name: CRAWLAB_SETTING_ENABLEDEMOSPIDERS
           value: "Y"
         ports:
         - containerPort: 8080

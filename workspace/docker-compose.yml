@@ -6,12 +6,14 @@ services:
     command: "air -c .air.conf"
     volumes:
       - ../backend:/backend
+      - ./log/master:/backend/tmp
     depends_on:
       - mongo
       - redis
     ports:
       - 8000:8000
     environment:
+      CRAWLAB_SETTING_ENABLEDEMOSPIDERS: "Y"
       CRAWLAB_MONGO_HOST: "mongo"
       CRAWLAB_REDIS_ADDRESS: "redis"
       CRAWLAB_SERVER_MASTER: "Y"
@@ -29,6 +31,8 @@ services:
       - 8001:8000
     volumes:
       - ../backend:/backend
+      - ./log/worker-1:/backend/tmp
+
     environment:
       CRAWLAB_MONGO_HOST: "mongo"
       CRAWLAB_REDIS_ADDRESS: "redis"

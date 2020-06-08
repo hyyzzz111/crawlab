@@ -578,7 +578,7 @@ func InitSpiderService() error {
 	// 启动定时任务
 	cPub.Start()
 
-	if model.IsMaster() && viper.GetString("setting.demoSpiders") == "Y" {
+	if model.IsMaster() && viper.GetString("setting.enableDemoSpiders") == "Y" {
 		// 初始化Demo爬虫
 		InitDemoSpiders()
 	}
