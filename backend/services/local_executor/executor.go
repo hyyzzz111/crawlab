@@ -10,13 +10,25 @@ import (
 	"encoding/json"
 	"github.com/apex/log"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/gomodule/redigo/redis"
 	"github.com/panjf2000/ants/v2"
+	"github.com/spf13/viper"
 	"time"
 )
 
 type Executor struct {
-	sm   *local_spider.SpiderManager
-	pool *ants.Pool
+	sm     *local_spider.SpiderManager
+	pool   *ants.Pool
+	logger *log.Entry
+}
+
+func NewExecutor(pooSize int) *Executor {
+	pool, _ := ants.NewPool(pooSize)
+	return &Executor{
+		sm:     local_spider.NewSpiderManager(),
+		pool:   pool,
+		logger: log.WithField("p", "Executor"),
+	}
 }
 
 func (e *Executor) getTask() (task model.Task, sp model.Spider, err error) {
@@ -42,15 +54,15 @@ func (e *Executor) getTask() (task model.Task, sp model.Spider, err error) {
 	}
 	// 反序列化
 	tMsg := services.TaskMessage{}
-	if err := json.Unmarshal([]byte(msg), &tMsg); err != nil {
-		log.Errorf("json string to struct error: %s", err.Error())
+	if err = json.Unmarshal([]byte(msg), &tMsg); err != nil {
+		e.logger.Errorf("json string to struct error: %s", err.Error())
 		return
 	}
 
 	// 获取任务
 	task, err = model.GetTask(tMsg.Id)
 	if err != nil {
-		log.Errorf("execute task, get task error: %s", err.Error())
+		e.logger.Errorf("execute task, get task error: %s", err.Error())
 		return
 	}
 	// 获取爬虫
@@ -88,10 +100,15 @@ func (e *Executor) Run(ctx context.Context) {
 				err := e.pool.Submit(func() {
 					worker, err := e.createWorker()
 					if err != nil {
-						log.WithError(err).Errorf("createWorker failed")
+						if err == redis.ErrNil {
+							e.logger.Infof("pull task empty. waiting..")
+							time.Sleep(5 * time.Second)
+							return
+						}
+						e.logger.WithError(err).Errorf("createWorker failed")
 						return
 					}
-					worker.Execute(e.sm)
+					worker.Execute()
 				})
 				if err == ants.ErrPoolOverload {
 					return err
@@ -101,4 +118,16 @@ func (e *Executor) Run(ctx context.Context) {
 		}
 	}
 
+}
+
+func InitExecutor() error {
+	// 如果不允许主节点运行任务，则跳过
+	if model.IsMaster() && viper.GetString("setting.runOnMaster") == "N" {
+		return nil
+	}
+	go func() {
+		exec := NewExecutor(2)
+		exec.Run(context.TODO())
+	}()
+	return nil
 }

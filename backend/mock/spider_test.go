@@ -93,7 +93,7 @@ func TestGetSpiderDir(t *testing.T) {
 	if err != nil {
 		t.Fatal("unmarshal resp failed")
 	}
-	Convey("Test API GetSpiderDir", t, func() {
+	Convey("Test API GetLogDir", t, func() {
 		Convey("Test response status", func() {
 			So(resp.Status, ShouldEqual, "ok")
 			So(resp.Message, ShouldEqual, "success")

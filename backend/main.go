@@ -11,6 +11,7 @@ import (
 	"crawlab/routes"
 	"crawlab/services"
 	"crawlab/services/challenge"
+	"crawlab/services/local_executor"
 	"crawlab/services/rpc"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
@@ -124,8 +125,16 @@ func main() {
 		log.Info("initialized clean service successfully")
 	}
 
+	// 初始化RPC服务
+	if err := rpc.InitRpcService(); err != nil {
+		log.Error("init rpc service error:" + err.Error())
+		debug.PrintStack()
+		panic(err)
+	}
+	log.Info("initialized rpc service successfully")
+
 	// 初始化任务执行器
-	if err := services.InitTaskExecutor(); err != nil {
+	if err := local_executor.InitExecutor(); err != nil {
 		log.Error("init task executor error:" + err.Error())
 		debug.PrintStack()
 		panic(err)
@@ -139,15 +148,6 @@ func main() {
 		panic(err)
 	}
 	log.Info("initialized spider service successfully")
-
-	// 初始化RPC服务
-	if err := rpc.InitRpcService(); err != nil {
-		log.Error("init rpc service error:" + err.Error())
-		debug.PrintStack()
-		panic(err)
-	}
-	log.Info("initialized rpc service successfully")
-
 	// 以下为主节点服务
 	if model.IsMaster() {
 		// 中间件

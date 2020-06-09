@@ -582,19 +582,19 @@ func InitDemoSpiders() {
 	}
 
 	// 发布所有爬虫
-	PublishAllSpiders()
+	//PublishAllSpiders()
 }
 
 // 启动爬虫服务
 func InitSpiderService() error {
 	// 构造定时任务执行器
-	cPub := cron.New(cron.WithSeconds())
-	if _, err := cPub.AddFunc("0 * * * * *", PublishAllSpiders); err != nil {
-		return err
-	}
-
-	// 启动定时任务
-	cPub.Start()
+	//cPub := cron.New(cron.WithSeconds())
+	//if _, err := cPub.AddFunc("0 * * * * *", PublishAllSpiders); err != nil {
+	//	return err
+	//}
+	//
+	//// 启动定时任务
+	//cPub.Start()
 
 	if model.IsMaster() && viper.GetString("setting.enableDemoSpiders") == "Y" {
 		log.Infof("inject demo spiders")

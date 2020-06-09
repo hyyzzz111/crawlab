@@ -219,6 +219,9 @@ func _Compress(file *os.File, prefix string, zw *zip.Writer) error {
 		return err
 	}
 	if info.IsDir() {
+		if info.Name() == ".git" {
+			return nil
+		}
 		prefix = prefix + "/" + info.Name()
 		fileInfos, err := file.Readdir(-1)
 		if err != nil {

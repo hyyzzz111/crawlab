@@ -49,6 +49,7 @@ type Spider struct {
 	IsGit            bool   `json:"is_git" bson:"is_git"`                         // 是否为 Git
 	GitUrl           string `json:"git_url" bson:"git_url"`                       // Git URL
 	GitBranch        string `json:"git_branch" bson:"git_branch"`                 // Git 分支
+	GitHash          string `json:"git_hash" bson:"git_branch"`                   // Git Hash
 	GitHasCredential bool   `json:"git_has_credential" bson:"git_has_credential"` // Git 是否加密
 	GitUsername      string `json:"git_username" bson:"git_username"`             // Git 用户名
 	GitPassword      string `json:"git_password" bson:"git_password"`             // Git 密码

@@ -216,8 +216,6 @@ func (s *Scheduler) Enable(id bson.ObjectId) error {
 }
 
 func (s *Scheduler) Update() error {
-	// 删除所有定时任务
-	s.RemoveAll()
 
 	// 获取所有定时任务
 	sList, err := model.GetScheduleList(nil)
@@ -232,6 +230,8 @@ func (s *Scheduler) Update() error {
 		log.Errorf("get admin user error: %s", err.Error())
 		return err
 	}
+	// 删除所有定时任务
+	s.RemoveAll()
 
 	// 遍历任务列表
 	for i := 0; i < len(sList); i++ {
