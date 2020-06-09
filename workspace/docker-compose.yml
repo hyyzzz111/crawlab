@@ -6,13 +6,14 @@ services:
     command: "air -c .air.conf"
     volumes:
       - ../backend:/backend
-      - ./log/master:/backend/tmp
+      - /backend/tmp
     depends_on:
       - mongo
       - redis
     ports:
       - 8000:8000
     environment:
+      CRAWLAB_SPIDER_PATH: "/spiders"
       CRAWLAB_SETTING_ENABLEDEMOSPIDERS: "Y"
       CRAWLAB_MONGO_HOST: "mongo"
       CRAWLAB_REDIS_ADDRESS: "redis"
@@ -31,9 +32,10 @@ services:
       - 8001:8000
     volumes:
       - ../backend:/backend
-      - ./log/worker-1:/backend/tmp
+      - /backend/tmp
 
     environment:
+      CRAWLAB_SPIDER_PATH: "/spiders"
       CRAWLAB_MONGO_HOST: "mongo"
       CRAWLAB_REDIS_ADDRESS: "redis"
       CRAWLAB_SERVER_MASTER: "N"
@@ -52,13 +54,14 @@ services:
     volumes:
       - ../backend:/backend
     environment:
+      CRAWLAB_SPIDER_PATH: "/spiders"
       CRAWLAB_MONGO_HOST: "mongo"
       CRAWLAB_REDIS_ADDRESS: "redis"
       CRAWLAB_SERVER_MASTER: "N"
       CRAWLAB_SERVER_PORT: 8002
       CRAWLAB_SERVER_REGISTER_TYPE: "customName"
       CRAWLAB_SERVER_REGISTER_CUSTOMNODENAME: "worker_2"
-  frontend:
+  ui:
     build:
       context: ./dockerfiles/node
     container_name: crawlab_frontend

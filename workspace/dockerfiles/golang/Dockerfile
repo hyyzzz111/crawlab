@@ -21,6 +21,6 @@ RUN chmod 777 /tmp \
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 # install backend
 RUN pip install scrapy pymongo bs4 requests crawlab-sdk scrapy-splash
-
+RUN mkdir /spiders && chmod -R 0755 /spiders
 VOLUME /backend
 EXPOSE 8080

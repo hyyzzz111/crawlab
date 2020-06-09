@@ -185,6 +185,9 @@ func GetSpiderList(filter interface{}, skip int, limit int, sortStr string) ([]S
 			debug.PrintStack()
 			continue
 		}
+		// 赋值
+		spiders[i].LastRunTs = task.CreateTs
+		spiders[i].LastStatus = task.Status
 
 		// 获取正在运行的爬虫
 		latestTasks, err := spider.GetLatestTasks(50) // TODO: latestN 暂时写死，后面加入数据库
@@ -194,9 +197,13 @@ func GetSpiderList(filter interface{}, skip int, limit int, sortStr string) ([]S
 			continue
 		}
 
+		spiders[i].LatestTasks = latestTasks
 		// 获取用户
 		var user User
 		if spider.UserId.Valid() {
+			if spider.UserId.Hex() == constants.ObjectIdNull {
+				continue
+			}
 			user, err = GetUser(spider.UserId)
 			if err != nil {
 				log.Errorf(err.Error())
@@ -205,10 +212,6 @@ func GetSpiderList(filter interface{}, skip int, limit int, sortStr string) ([]S
 			}
 		}
 
-		// 赋值
-		spiders[i].LastRunTs = task.CreateTs
-		spiders[i].LastStatus = task.Status
-		spiders[i].LatestTasks = latestTasks
 		spiders[i].Username = user.Username
 	}
 

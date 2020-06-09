@@ -14,6 +14,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/viper"
+	"go.uber.org/atomic"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
@@ -172,6 +173,10 @@ func ReadFileByStep(filePath string, handle func([]byte, *mgo.GridFile), fileCre
 	}
 }
 
+var (
+	publishSpiderLocker atomic.Int32
+)
+
 // 发布所有爬虫
 func PublishAllSpiders() {
 	// 获取爬虫列表
@@ -179,13 +184,24 @@ func PublishAllSpiders() {
 	if len(spiders) == 0 {
 		return
 	}
-	log.Infof("start sync spider to local, total: %d", len(spiders))
-	// 遍历爬虫列表
-	for _, spider := range spiders {
-		// 异步发布爬虫
-		go func(s model.Spider) {
-			PublishSpider(s)
-		}(spider)
+	if publishSpiderLocker.CAS(0, 1) {
+		log.Infof("start sync spider to local, total: %d", len(spiders))
+		go func() {
+			defer func() {
+				publishSpiderLocker.Store(0)
+			}()
+			for _, spider := range spiders {
+				spiderPath := filepath.Join(
+					viper.GetString("spider.path"),
+					spider.Name,
+				)
+				log.Infof("publish spider:%s to %s", spider.DisplayName, spiderPath)
+				// 异步发布爬虫
+				PublishSpider(spider)
+			}
+		}()
+	} else {
+		log.Infof("ignore  sync spider to local request, total: %d", len(spiders))
 	}
 }
 
@@ -463,6 +479,8 @@ func UpdateSpiderDedup(spider model.Spider) error {
 func InitDemoSpiders() {
 	// 添加Demo爬虫
 	templateSpidersDir := "./template/spiders"
+	//demo 爬虫挂载到admin下面
+	user, _ := GetAdminUser()
 	for _, info := range utils.ListDir(templateSpidersDir) {
 		if !info.IsDir() {
 			continue
@@ -519,7 +537,7 @@ func InitDemoSpiders() {
 				ProjectId:   bson.ObjectIdHex(constants.ObjectIdNull),
 				FileId:      bson.ObjectIdHex(constants.ObjectIdNull),
 				Cmd:         configData.Cmd,
-				UserId:      bson.ObjectIdHex(constants.ObjectIdNull),
+				UserId:      user.Id,
 			}
 			if err := spider.Add(); err != nil {
 				log.Errorf("add spider error: " + err.Error())
@@ -546,7 +564,7 @@ func InitDemoSpiders() {
 				ProjectId:   bson.ObjectIdHex(constants.ObjectIdNull),
 				FileId:      bson.ObjectIdHex(constants.ObjectIdNull),
 				Config:      configData,
-				UserId:      bson.ObjectIdHex(constants.ObjectIdNull),
+				UserId:      user.Id,
 			}
 			if err := spider.Add(); err != nil {
 				log.Errorf("add spider error: " + err.Error())
@@ -579,6 +597,7 @@ func InitSpiderService() error {
 	cPub.Start()
 
 	if model.IsMaster() && viper.GetString("setting.enableDemoSpiders") == "Y" {
+		log.Infof("inject demo spiders")
 		// 初始化Demo爬虫
 		InitDemoSpiders()
 	}
