@@ -1,4 +1,4 @@
-package executor_service
+package spider_service
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"crawlab/model"
 	"crawlab/pkg/types"
 	"crawlab/services/local_node"
-	"crawlab/services/spider_service"
 	"encoding/json"
 	"github.com/apex/log"
 	"github.com/cenkalti/backoff/v4"
@@ -17,19 +16,15 @@ import (
 )
 
 type Executor struct {
-	sm     *spider_service.SpiderManager
+	sm     *SpiderManager
 	pool   *ants.Pool
 	logger *log.Entry
-}
-
-func (e *Executor) SpiderManager() *spider_service.SpiderManager {
-	return e.sm
 }
 
 func NewExecutor(pooSize int) *Executor {
 	pool, _ := ants.NewPool(pooSize)
 	return &Executor{
-		sm:     spider_service.NewSpiderManager(),
+		sm:     NewSpiderManager(),
 		pool:   pool,
 		logger: log.WithField("p", "Executor"),
 	}
@@ -39,10 +34,8 @@ func (e *Executor) getTask() (task model.Task, sp model.Spider, err error) {
 
 	// 获取当前节点
 	node := local_node.CurrentNode()
-
 	// 节点队列
 	queueCur := "tasks:node:" + node.Id.Hex()
-
 	// 节点队列任务
 	var msg string
 	if msg, err = database.RedisClient.LPop(queueCur); err != nil {
@@ -90,16 +83,14 @@ func (e *Executor) getTaskBlock(ctx context.Context) (model.Task, model.Spider, 
 	}, bc)
 	return task, spider, err
 }
-func (e *Executor) createWorker(ctx context.Context) (*TaskWorker, error) {
+func (e *Executor) createJob(ctx context.Context) (*Job, error) {
 	task, spider, err := e.getTaskBlock(ctx)
 	if err != nil {
 		return nil, err
 	}
-	e.sm.PutSpider(&spider)
-	localSpider, _ := e.sm.GetSpider(task.SpiderId.Hex())
-	return &TaskWorker{
+	return &Job{
 		task:   task,
-		spider: localSpider,
+		spider: e.sm.InjectSpider(&spider),
 	}, err
 }
 func (e *Executor) Run(ctx context.Context) {
@@ -110,13 +101,13 @@ func (e *Executor) Run(ctx context.Context) {
 			break
 		default:
 			err := e.pool.Submit(func() {
-				worker, err := e.createWorker(ctx)
+				worker, err := e.createJob(ctx)
 				if err != nil {
 					if err == redis.ErrNil {
 						e.logger.Infof("pull task empty. waiting..")
 						return
 					}
-					e.logger.WithError(err).Errorf("createWorker failed")
+					e.logger.WithError(err).Errorf("createJob failed")
 					return
 				}
 				worker.Execute()

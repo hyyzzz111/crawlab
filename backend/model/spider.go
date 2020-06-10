@@ -70,14 +70,14 @@ type Spider struct {
 	WebHookUrl string `json:"web_hook_url" bson:"web_hook_url"` // Web Hook URL
 
 	// 前端展示
-	LastRunTs   time.Time               `json:"last_run_ts"`  // 最后一次执行时间
-	LastStatus  string                  `json:"last_status"`  // 最后执行状态
-	Config      entity.ConfigSpiderData `json:"config"`       // 可配置爬虫配置
-	LatestTasks []Task                  `json:"latest_tasks"` // 最近任务列表
-	Username    string                  `json:"username"`     // 用户名称
-	Syncing     bool                    `json:"syncing"`      //是否正在同步代码
+	LastRunTs           time.Time               `json:"last_run_ts"`            // 最后一次执行时间
+	LastStatus          string                  `json:"last_status"`            // 最后执行状态
+	Config              entity.ConfigSpiderData `json:"config"`                 // 可配置爬虫配置
+	LatestTasks         []Task                  `json:"latest_tasks"`           // 最近任务列表
+	Username            string                  `json:"username"`               // 用户名称
+	UploadingGridFsFile bool                    `json:"uploading_grid_fs_file"` //是否正在同步代码
 
-	LastSyncTime time.Time `json:"last_sync_time"` //最后一次同步时间
+	LastUploadedGridFsFileTime time.Time `json:"last_uploaded_grid_fs_file_time"` //最后一次同步时间
 	// 时间
 	UserId   bson.ObjectId `json:"user_id" bson:"user_id"`
 	CreateTs time.Time     `json:"create_ts" bson:"create_ts"`

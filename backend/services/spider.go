@@ -4,9 +4,9 @@ import (
 	"crawlab/constants"
 	"crawlab/database"
 	"crawlab/entity"
-	"crawlab/lib/cron"
 	"crawlab/model"
 	"crawlab/services/spider_handler"
+	"crawlab/services/spider_service/uploader"
 	"crawlab/utils"
 	"fmt"
 	"github.com/apex/log"
@@ -490,6 +490,7 @@ func InitDemoSpiders() {
 		// 如果爬虫在数据库中不存在，则添加
 		spider := model.GetSpiderByName(spiderName)
 		if spider.Name != "" {
+			log.Infof("skip publish demo spider: %s", spiderName)
 			// 存在同名爬虫，跳过
 			continue
 		}
@@ -523,10 +524,10 @@ func InitDemoSpiders() {
 			debug.PrintStack()
 			continue
 		}
-
+		log.Infof("ready publish demo spider:%s", spiderName)
 		if configData.Type == constants.Customized {
 			// 添加该爬虫到数据库
-			spider = model.Spider{
+			spiderModel := &model.Spider{
 				Id:          bson.NewObjectId(),
 				Name:        spiderName,
 				DisplayName: configData.DisplayName,
@@ -539,18 +540,19 @@ func InitDemoSpiders() {
 				Cmd:         configData.Cmd,
 				UserId:      user.Id,
 			}
-			if err := spider.Add(); err != nil {
+			if err := spiderModel.Add(); err != nil {
 				log.Errorf("add spider error: " + err.Error())
 				debug.PrintStack()
 				continue
 			}
-
-			// 上传爬虫到GridFS
-			if err := UploadSpiderToGridFsFromMaster(spider); err != nil {
+			up := uploader.NewLocalFileUploader(spiderModel)
+			err := up.Upload(spiderPath)
+			if err != nil {
 				log.Errorf("upload spider error: " + err.Error())
 				debug.PrintStack()
 				continue
 			}
+
 		} else if configData.Type == constants.Configurable || configData.Type == "config" {
 			// 添加该爬虫到数据库
 			spider = model.Spider{
@@ -581,8 +583,6 @@ func InitDemoSpiders() {
 		}
 	}
 
-	// 发布所有爬虫
-	//PublishAllSpiders()
 }
 
 // 启动爬虫服务
@@ -602,20 +602,20 @@ func InitSpiderService() error {
 		InitDemoSpiders()
 	}
 
-	if model.IsMaster() {
-		// 构造 Git 定时任务
-		GitCron = &GitCronScheduler{
-			cron: cron.New(cron.WithSeconds()),
-		}
-
-		// 启动 Git 定时任务
-		if err := GitCron.Start(); err != nil {
-			return err
-		}
-
-		// 清理UserId
-		InitSpiderCleanUserIds()
-	}
+	//if model.IsMaster() {
+	//	// 构造 Git 定时任务
+	//	GitCron = &GitCronScheduler{
+	//		cron: cron.New(cron.WithSeconds()),
+	//	}
+	//
+	//	// 启动 Git 定时任务
+	//	if err := GitCron.Start(); err != nil {
+	//		return err
+	//	}
+	//
+	//	// 清理UserId
+	//	InitSpiderCleanUserIds()
+	//}
 
 	return nil
 }

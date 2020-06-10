@@ -2,18 +2,14 @@ package services
 
 import (
 	"crawlab/constants"
-	"crawlab/database"
 	"crawlab/entity"
 	"crawlab/model"
 	"crawlab/model/config_spider"
-	"crawlab/services/spider_handler"
+	"crawlab/services/spider_service/uploader"
 	"crawlab/utils"
 	"errors"
 	"fmt"
 	"github.com/apex/log"
-	"github.com/globalsign/mgo/bson"
-	uuid "github.com/satori/go.uuid"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 	"os"
 	"path/filepath"
@@ -195,55 +191,12 @@ func ProcessSpiderFilesFromConfigData(spider model.Spider, configData entity.Con
 		return err
 	}
 
-	// 打包为 zip 文件
-	files, err := utils.GetFilesFromDir(spiderDir)
-	if err != nil {
+	up := uploader.NewLocalFileUploader(&spider)
+	if err := up.Upload(spiderDir); err != nil {
+		log.Errorf("upload spider error: " + err.Error())
+		debug.PrintStack()
 		return err
 	}
-	randomId := uuid.NewV4()
-	tmpFilePath := filepath.Join(viper.GetString("other.tmppath"), spider.Name+"."+randomId.String()+".zip")
-	spiderZipFileName := spider.Name + ".zip"
-	if err := utils.Compress(files, tmpFilePath); err != nil {
-		return err
-	}
-
-	// 获取 GridFS 实例
-	s, gf := database.GetGridFs("files")
-	defer s.Close()
-
-	// 判断文件是否已经存在
-	var gfFile model.GridFs
-	if err := gf.Find(bson.M{"filename": spiderZipFileName}).One(&gfFile); err == nil {
-		// 已经存在文件，则删除
-		if err := gf.RemoveId(gfFile.Id); err != nil {
-			log.Errorf("remove grid fs error: %s", err.Error())
-			debug.PrintStack()
-			return err
-		}
-	}
-
-	// 上传到GridFs
-	fid, err := UploadToGridFs(spiderZipFileName, tmpFilePath)
-	if err != nil {
-		log.Errorf("upload to grid fs error: %s", err.Error())
-		return err
-	}
-
-	// 保存爬虫 FileId
-	spider.FileId = fid
-	_ = spider.Save()
-
-	// 获取爬虫同步实例
-	spiderSync := spider_handler.SpiderSync{
-		Spider: spider,
-	}
-
-	// 获取gfFile
-	gfFile2 := model.GetGridFs(spider.FileId)
-
-	// 生成MD5
-	spiderSync.CreateMd5File(gfFile2.Md5)
-
 	return nil
 }
 

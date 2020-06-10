@@ -1,12 +1,11 @@
-package executor_service
+package spider_service
 
 import (
 	"context"
 	"crawlab/constants"
 	"crawlab/model"
-	"crawlab/services"
 	"crawlab/services/local_node"
-	"crawlab/services/local_spider"
+	"crawlab/services/spider_service/notification"
 	"github.com/apex/log"
 	"path/filepath"
 	"runtime/debug"
@@ -16,13 +15,13 @@ import (
 type TaskDelegate interface {
 	OnStart()
 }
-type TaskWorker struct {
+type Job struct {
 	task     model.Task
-	spider   *spider_service.Spider
+	spider   *Spider
 	taskUser model.User
 }
 
-func (t *TaskWorker) markTaskRunning() {
+func (t *Job) markTaskRunning() {
 	// 获取当前节点
 	node := local_node.CurrentNode()
 	// 任务赋值
@@ -33,7 +32,7 @@ func (t *TaskWorker) markTaskRunning() {
 	// 储存任务
 	_ = t.task.Save()
 }
-func (t *TaskWorker) markTaskFinish() {
+func (t *Job) markTaskFinish() {
 	// 统计数据
 	t.task.Status = constants.StatusFinished                               // 任务状态: 已完成
 	t.task.FinishTs = time.Now()                                           // 结束时间
@@ -42,10 +41,10 @@ func (t *TaskWorker) markTaskFinish() {
 	_ = t.task.Save()
 }
 
-func (t *TaskWorker) updateResultCount() {
+func (t *Job) updateResultCount() {
 	model.UpdateTaskResultCount(t.task.Id)
 }
-func (t *TaskWorker) watchEvent(ctx context.Context) {
+func (t *Job) watchEvent(ctx context.Context) {
 	timer1 := time.NewTicker(time.Second * 5)
 	timer2 := time.NewTicker(time.Second * 30)
 	defer func() {
@@ -63,7 +62,7 @@ func (t *TaskWorker) watchEvent(ctx context.Context) {
 		}
 	}
 }
-func (t *TaskWorker) updateErrorLogs() {
+func (t *Job) updateErrorLogs() {
 	u, err := model.GetUser(t.task.UserId)
 	if err != nil {
 		return
@@ -77,19 +76,19 @@ func (t *TaskWorker) updateErrorLogs() {
 
 }
 
-func (t *TaskWorker) Execute() {
+func (t *Job) Execute() {
 	// 获得触发任务用户
 	user, err := model.GetUser(t.task.UserId)
 	if err != nil {
 		return
 	}
+	ctx := context.Background()
 
 	// 开始计时
 	t.markTaskRunning()
 	// 发送 Web Hook 请求 (任务开始)
-	go services.SendWebHookRequest(user, t.task, *t.spider.Spider)
+	notification.SendWebHookRequest(user, t.task, *t.spider.Spider)
 
-	ctx := context.Background()
 	go t.watchEvent(ctx)
 	defer func() {
 		ctx.Done()
@@ -103,24 +102,24 @@ func (t *TaskWorker) Execute() {
 		log.WithError(err).Errorf("TASK:%s:%w", t.spider.Cmd, err.Error())
 		// 如果发生错误，则发送通知
 		if user.Setting.NotificationTrigger == constants.NotificationTriggerOnTaskEnd || user.Setting.NotificationTrigger == constants.NotificationTriggerOnTaskError {
-			services.SendNotifications(user, t.task, *t.spider.Spider)
+			notification.SendNotifications(user, t.task, *t.spider.Spider)
 		}
 		// 发送 Web Hook 请求 (任务开始)
-		go services.SendWebHookRequest(user, t.task, *t.spider.Spider)
+		notification.SendWebHookRequest(user, t.task, *t.spider.Spider)
 
 		return
 	}
 
 	// 发送 Web Hook 请求 (任务结束)
-	go services.SendWebHookRequest(user, t.task, *t.spider.Spider)
+	notification.SendWebHookRequest(user, t.task, *t.spider.Spider)
 
 	// 如果是任务结束时发送通知，则发送通知
 	if user.Setting.NotificationTrigger == constants.NotificationTriggerOnTaskEnd {
-		services.SendNotifications(user, t.task, *t.spider.Spider)
+		notification.SendNotifications(user, t.task, *t.spider.Spider)
 	}
 	t.markTaskFinish()
 }
-func (t *TaskWorker) GetLogFilePath() (dir string, err error) {
+func (t *Job) GetLogFilePath() (dir string, err error) {
 	// 日志目录
 	fileDir, err := t.spider.GetLogDir()
 

@@ -1,11 +1,10 @@
 package spider_service
 
 import (
-	"bufio"
+	"context"
 	"crawlab/constants"
 	"crawlab/database"
 	"crawlab/model"
-	"crawlab/services/context"
 	log2 "crawlab/services/spider_service/log"
 	"crawlab/utils"
 	"github.com/apex/log"
@@ -16,7 +15,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -84,7 +82,7 @@ func ExecuteShellCmd(ctx context.Context, cmdStr string, cwd string, t model.Tas
 	if err := WaitTaskProcess(cmd, t, s); err != nil {
 		return err
 	}
-	ch <- constants.TaskFinish
+	//ch <- constants.TaskFinish
 	return nil
 }
 
@@ -174,7 +172,7 @@ func WaitTaskProcess(cmd *exec.Cmd, t model.Task, s model.Spider) error {
 				t.Status = constants.StatusError
 				_ = t.Save()
 
-				FinishUpTask(s, t)
+				//FinishUpTask(s, t)
 			}
 		}
 

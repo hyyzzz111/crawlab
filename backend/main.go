@@ -11,8 +11,8 @@ import (
 	"crawlab/routes"
 	"crawlab/services"
 	"crawlab/services/challenge"
-	"crawlab/services/local_executor"
 	"crawlab/services/rpc"
+	"crawlab/services/spider_service"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -41,7 +41,7 @@ func main() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_ = v.RegisterValidation("bid", validate2.MongoID)
 	}
-
+	gin.SetMode(gin.ReleaseMode)
 	if swagHandler != nil {
 		app.GET("/swagger/*any", swagHandler)
 	}
@@ -134,7 +134,7 @@ func main() {
 	log.Info("initialized rpc service successfully")
 
 	// 初始化任务执行器
-	if err := executor_service.InitExecutor(); err != nil {
+	if err := spider_service.InitExecutor(); err != nil {
 		log.Error("init task executor error:" + err.Error())
 		debug.PrintStack()
 		panic(err)
