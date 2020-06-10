@@ -1,16 +1,13 @@
-package local_executor
+package executor_service
 
 import (
 	"context"
 	"crawlab/constants"
-	"crawlab/database"
 	"crawlab/model"
 	"crawlab/services"
 	"crawlab/services/local_node"
 	"crawlab/services/local_spider"
-	"crawlab/utils"
 	"github.com/apex/log"
-	"github.com/globalsign/mgo"
 	"path/filepath"
 	"runtime/debug"
 	"time"
@@ -21,7 +18,7 @@ type TaskDelegate interface {
 }
 type TaskWorker struct {
 	task     model.Task
-	spider   *local_spider.Spider
+	spider   *spider_service.Spider
 	taskUser model.User
 }
 
@@ -102,16 +99,7 @@ func (t *TaskWorker) Execute() {
 	if err != nil {
 		return
 	}
-
-	//创建索引
-	col := utils.GetSpiderCol(t.spider.Col, t.spider.Name)
-	s, c := database.GetCol(col)
-	defer s.Close()
-	_ = c.EnsureIndex(mgo.Index{
-		Key: []string{"task_id"},
-	})
-	err = t.spider.Execute(t.task)
-	if err != nil {
+	if err = t.spider.Execute(t.task); err != nil {
 		log.WithError(err).Errorf("TASK:%s:%w", t.spider.Cmd, err.Error())
 		// 如果发生错误，则发送通知
 		if user.Setting.NotificationTrigger == constants.NotificationTriggerOnTaskEnd || user.Setting.NotificationTrigger == constants.NotificationTriggerOnTaskError {

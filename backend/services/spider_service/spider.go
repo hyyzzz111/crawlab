@@ -1,16 +1,19 @@
-package local_spider
+package spider_service
 
 import (
-	"context"
 	"crawlab/constants"
 	"crawlab/database"
 	"crawlab/model"
 	"crawlab/services"
-	"crawlab/services/spider_handler"
 	"crawlab/utils"
+	"errors"
 	"github.com/apex/log"
+	"github.com/cenkalti/backoff/v4"
+	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/h2non/filetype"
+	"github.com/h2non/filetype/matchers"
 	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/atomic"
@@ -30,8 +33,13 @@ import (
 	"time"
 )
 
+var (
+	ErrNotZipFile = errors.New("not a valid zip file")
+)
+
 type Spider struct {
 	*model.Spider
+	logger log.Entry
 	//MD5
 	Md5 string
 	sync.RWMutex
@@ -58,6 +66,10 @@ func (s *Spider) fileMD5() string {
 	return utils.ReadFileOneLine(filepath.Join(s.localPath(), Md5File))
 }
 func (s *Spider) downloadZipToTmp(gridFs *mgo.GridFile) (dir *os.File, cleanup func(), err error) {
+	for s.Spider.Syncing {
+
+		time.Sleep(time.Second * 5)
+	}
 	// 生成唯一ID
 	randomId := uuid.NewV4()
 	tmpPath := viper.GetString("other.tmppath")
@@ -85,32 +97,73 @@ func (s *Spider) downloadZipToTmp(gridFs *mgo.GridFile) (dir *os.File, cleanup f
 		}
 	}, err
 }
-func (s *Spider) Run(fn func()) bool {
-	s.RLock()
-	defer s.RUnlock()
-	fn()
-	return true
-}
-func (s *Spider) TryWaitUpdate(ctx context.Context, duration time.Duration) {
-	if s.shouldWaitUpdate {
-		timeout, _ := context.WithTimeout(ctx, duration)
-		for {
-			select {
-			case <-timeout.Done():
-				return
-			default:
-				if !s.shouldWaitUpdate {
-					break
-				}
-			}
+func (s *Spider) uploadSpiderFileToGridFs(tmpFilePath string) (err error) {
+	// 打包为 zip 文件
+	files, err := utils.GetFilesFromDir(tmpFilePath)
+	if err != nil {
+		return err
+	}
+	randomId := uuid.NewV4()
+
+	tmpZipPath := filepath.Join(viper.GetString("other.tmppath"), s.Name+"."+randomId.String()+".zip")
+	spiderZipFileName := s.Name + ".zip"
+	if err := utils.Compress(files, tmpZipPath); err != nil {
+		return err
+	}
+	//根据zip生成md5
+	md5Str, err := utils.FileMd5(tmpZipPath)
+	if err != nil {
+		return err
+	}
+	// 获取 GridFS 实例
+	session, gf := database.GetGridFs("files")
+	defer session.Close()
+
+	// 判断文件是否已经存在
+	var gfFile *model.GridFs
+	bp := backoff.NewConstantBackOff(time.Second * 3)
+	backoff.Retry(func() error {
+		err := gf.Find(bson.M{"filename": spiderZipFileName}).One(&gfFile)
+		if err == nil || err == mgo.ErrNotFound {
+			s.Spider.Syncing = true
+			s.Spider.LastSyncTime = time.Now()
+			return s.Spider.Save()
+		}
+		return err
+	}, bp)
+	defer func() {
+		backoff.Retry(func() error {
+			s.Spider.Syncing = false
+			return s.Spider.Save()
+		}, bp)
+	}()
+	if gfFile != nil {
+		if md5Str == gfFile.Md5 {
+			return nil
+		}
+		if err := gf.RemoveId(gfFile.Id); err != nil && err != mgo.ErrNotFound {
+			log.Errorf(err.Error())
+			debug.PrintStack()
+			return err
 		}
 	}
-}
 
-func (s *Spider) publishFromGit() (err error) {
+	// 上传到GridFs
+	fid, err := UploadToGridFs(spiderZipFileName, tmpFilePath)
+	if err != nil {
+		log.Errorf("upload to grid fs error: %s", err.Error())
+		return err
+	}
+
+	// 保存爬虫 FileId
+	s.FileId = fid
+
+	return nil
+}
+func (s *Spider) fetchSpiderCodeFromGit() (tmpFilePath string, err error) {
 	randomId := uuid.NewV4()
 	tmpPath := viper.GetString("other.tmppath")
-	tmpFilePath := filepath.Join(tmpPath, randomId.String())
+	tmpFilePath = filepath.Join(tmpPath, randomId.String())
 
 	if err = os.MkdirAll(tmpFilePath, 0755|os.ModeDir); err != nil {
 		log.Errorf("mkdir other.tmppath error: %v", err.Error())
@@ -125,7 +178,16 @@ func (s *Spider) publishFromGit() (err error) {
 		Depth:             1,
 		RecurseSubmodules: 1,
 	}
+	defer func() {
+		if err != nil {
 
+			s.GitSyncError = err.Error()
+			_ = backoff.Retry(func() error {
+				return s.Save()
+
+			}, backoff.NewConstantBackOff(1*time.Second))
+		}
+	}()
 	if s.GitUsername != "" && s.GitPassword != "" {
 
 		cloneOption.Auth = &http.BasicAuth{
@@ -146,82 +208,23 @@ func (s *Spider) publishFromGit() (err error) {
 			}
 			cloneOption.Auth, err = ssh.NewPublicKeysFromFile(username, path.Join(os.Getenv("HOME"), ".ssh", "id_rsa"), "")
 			if err != nil {
-				log.Error(err.Error())
-				debug.PrintStack()
-				services.SaveSpiderGitSyncError(*s.Spider, err.Error())
-				return err
+				return "", err
 			}
 		}
 	}
 
 	rep, err := git.PlainClone(tmpFilePath, false, cloneOption)
 	if err != nil {
-		services.SaveSpiderGitSyncError(*s.Spider, err.Error())
-		return err
+		return "", err
 	}
 	ref, err := rep.Reference(currentBranch, true)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if s.Spider.GitHash == ref.Hash().String() {
-		return nil
+		return "", nil
 	}
-	// 打包为 zip 文件
-	files, err := utils.GetFilesFromDir(tmpFilePath)
-	if err != nil {
-		return err
-	}
-	tmpZipPath := filepath.Join(viper.GetString("other.tmppath"), s.Name+"."+randomId.String()+".zip")
-	spiderZipFileName := s.Name + ".zip"
-	if err := utils.Compress(files, tmpZipPath); err != nil {
-		return err
-	}
-	//根据zip生成md5
-	// 获取 GridFS 实例
-	session, gf := database.GetGridFs("files")
-	defer session.Close()
-
-	// 判断文件是否已经存在
-	var gfFile model.GridFs
-	if err := gf.Find(bson.M{"filename": spiderZipFileName}).One(&gfFile); err == nil {
-		//if gfFile.
-		// 已经存在文件，则删除
-		log.Errorf(gfFile.Id.Hex() + " already exists. removing...")
-		if err := gf.RemoveId(gfFile.Id); err != nil {
-			log.Errorf(err.Error())
-			debug.PrintStack()
-			return err
-		}
-	}
-
-	// 上传到GridFs
-	fid, err := services.UploadToGridFs(spiderZipFileName, tmpFilePath)
-	if err != nil {
-		log.Errorf("upload to grid fs error: %s", err.Error())
-		return err
-	}
-
-	// 保存爬虫 FileId
-	spider.FileId = fid
-	if err := spider.Save(); err != nil {
-		return err
-	}
-
-	// 获取爬虫同步实例
-	spiderSync := spider_handler.SpiderSync{
-		Spider: spider,
-	}
-
-	// 获取gfFile
-	gfFile2 := model.GetGridFs(spider.FileId)
-
-	// 生成MD5
-	spiderSync.CreateMd5File(gfFile2.Md5)
-
-	// 检查是否为 Scrapy 爬虫
-	spiderSync.CheckIsScrapy()
-
-	return nil
+	return tmpFilePath, nil
 
 }
 func (s *Spider) Sync() (err error) {
@@ -235,12 +238,6 @@ func (s *Spider) Sync() (err error) {
 	defer utils.Close(f)
 
 	if err != nil {
-		if err == mgo.ErrNotFound {
-			if s.IsGit {
-
-			}
-
-		}
 		return err
 	}
 	//如果同需要同步
@@ -340,8 +337,8 @@ func (t *Spider) Execute(task model.Task) error {
 	}
 	// 获得触发任务用户
 	user, err := model.GetUser(task.UserId)
-	if err != nil {
-		return nil
+	if err != nil || err != mgo.ErrNotFound {
+		return err
 	}
 
 	//创建索引
@@ -428,4 +425,57 @@ func (s *Spider) InstallDeps() {
 			debug.PrintStack()
 		}
 	}
+}
+func (s *Spider) fetchSpiderCodeFromLocal(localPath string) (tmpZipPath string, err error) {
+	randomId := uuid.NewV4()
+
+	// 打包为 zip 文件
+	files, err := utils.GetFilesFromDir(localPath)
+	if err != nil {
+		return "", err
+	}
+	tmpZipPath = filepath.Join(viper.GetString("other.tmppath"), s.Name+"."+randomId.String()+".zip")
+	if err = os.MkdirAll(tmpZipPath, 0755); err != nil {
+		log.Errorf("mkdir other.tmppath error: %v", err.Error())
+		return
+	}
+	if err := utils.Compress(files, tmpZipPath); err != nil {
+		return "", err
+	}
+	return tmpZipPath, nil
+}
+func (s *Spider) fetchSpiderCodeFromUpload(ctx *gin.Context) (tmpPath string, err error) {
+	uploadFile, err := ctx.FormFile("file")
+	if err != nil {
+
+		return "", err
+	}
+	file, err := uploadFile.Open()
+	if err != nil {
+		return "", err
+	}
+	defer utils.Close(file)
+	head := make([]byte, 261)
+	_, err = file.Read(head)
+	if err != nil {
+		return "", err
+	}
+	if !filetype.IsType(head, matchers.TypeZip) {
+		return "", ErrNotZipFile
+	}
+	tmpPath = viper.GetString("other.tmppath")
+	if err = os.MkdirAll(tmpPath, 0755); err != nil {
+		log.Errorf("mkdir other.tmppath error: %v", err.Error())
+		return
+	}
+	randomId := uuid.NewV4()
+	tmpFilePath := filepath.Join(tmpPath, randomId.String()+".zip")
+	if err := os.MkdirAll(tmpFilePath, os.ModePerm); err != nil {
+		return "", err
+	}
+
+	if err := ctx.SaveUploadedFile(uploadFile, tmpFilePath); err != nil {
+		return "", err
+	}
+	return tmpFilePath, nil
 }

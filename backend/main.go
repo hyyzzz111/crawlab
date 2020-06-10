@@ -134,7 +134,7 @@ func main() {
 	log.Info("initialized rpc service successfully")
 
 	// 初始化任务执行器
-	if err := local_executor.InitExecutor(); err != nil {
+	if err := executor_service.InitExecutor(); err != nil {
 		log.Error("init task executor error:" + err.Error())
 		debug.PrintStack()
 		panic(err)

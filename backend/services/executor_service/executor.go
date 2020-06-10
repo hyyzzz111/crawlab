@@ -1,12 +1,12 @@
-package local_executor
+package executor_service
 
 import (
 	"context"
 	"crawlab/database"
 	"crawlab/model"
-	"crawlab/services"
+	"crawlab/pkg/types"
 	"crawlab/services/local_node"
-	"crawlab/services/local_spider"
+	"crawlab/services/spider_service"
 	"encoding/json"
 	"github.com/apex/log"
 	"github.com/cenkalti/backoff/v4"
@@ -17,15 +17,19 @@ import (
 )
 
 type Executor struct {
-	sm     *local_spider.SpiderManager
+	sm     *spider_service.SpiderManager
 	pool   *ants.Pool
 	logger *log.Entry
+}
+
+func (e *Executor) SpiderManager() *spider_service.SpiderManager {
+	return e.sm
 }
 
 func NewExecutor(pooSize int) *Executor {
 	pool, _ := ants.NewPool(pooSize)
 	return &Executor{
-		sm:     local_spider.NewSpiderManager(),
+		sm:     spider_service.NewSpiderManager(),
 		pool:   pool,
 		logger: log.WithField("p", "Executor"),
 	}
@@ -53,7 +57,7 @@ func (e *Executor) getTask() (task model.Task, sp model.Spider, err error) {
 		return
 	}
 	// 反序列化
-	tMsg := services.TaskMessage{}
+	tMsg := types.TaskMessage{}
 	if err = json.Unmarshal([]byte(msg), &tMsg); err != nil {
 		e.logger.Errorf("json string to struct error: %s", err.Error())
 		return
@@ -72,18 +76,27 @@ func (e *Executor) getTask() (task model.Task, sp model.Spider, err error) {
 	}
 	return task, spiderMode, nil
 }
-func (e *Executor) createWorker() (*TaskWorker, error) {
-	task, spider, err := e.getTask()
+func (e *Executor) getTaskBlock(ctx context.Context) (model.Task, model.Spider, error) {
+	bp := backoff.NewExponentialBackOff()
+	bc := backoff.WithContext(bp, ctx)
+	var task model.Task
+	var spider model.Spider
+	err := backoff.Retry(func() (err error) {
+		task, spider, err = e.getTask()
+		if err == redis.ErrNil {
+			e.logger.Infof("wait task")
+		}
+		return err
+	}, bc)
+	return task, spider, err
+}
+func (e *Executor) createWorker(ctx context.Context) (*TaskWorker, error) {
+	task, spider, err := e.getTaskBlock(ctx)
 	if err != nil {
 		return nil, err
 	}
-	localSpider, ok := e.sm.GetSpider(task.SpiderId.Hex())
-	if !ok {
-		e.sm.PutSpider(&spider)
-		localSpider, _ = e.sm.GetSpider(task.SpiderId.Hex())
-	} else {
-		localSpider.LoadModel(&spider)
-	}
+	e.sm.PutSpider(&spider)
+	localSpider, _ := e.sm.GetSpider(task.SpiderId.Hex())
 	return &TaskWorker{
 		task:   task,
 		spider: localSpider,
@@ -94,40 +107,51 @@ func (e *Executor) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			e.pool.Release()
+			break
 		default:
-			bp := backoff.NewConstantBackOff(1 * time.Second)
-			_ = backoff.Retry(func() error {
-				err := e.pool.Submit(func() {
-					worker, err := e.createWorker()
-					if err != nil {
-						if err == redis.ErrNil {
-							e.logger.Infof("pull task empty. waiting..")
-							time.Sleep(5 * time.Second)
-							return
-						}
-						e.logger.WithError(err).Errorf("createWorker failed")
+			err := e.pool.Submit(func() {
+				worker, err := e.createWorker(ctx)
+				if err != nil {
+					if err == redis.ErrNil {
+						e.logger.Infof("pull task empty. waiting..")
 						return
 					}
-					worker.Execute()
-				})
-				if err == ants.ErrPoolOverload {
-					return err
+					e.logger.WithError(err).Errorf("createWorker failed")
+					return
 				}
-				return nil
-			}, bp)
+				worker.Execute()
+			})
+			if err != ants.ErrPoolOverload {
+				time.Sleep(3 * time.Second)
+			}
 		}
 	}
 
 }
 
+func (e *Executor) RunGitSync() {
+
+}
+
+var localExecutor *Executor
+
+func Default() *Executor {
+	return localExecutor
+}
 func InitExecutor() error {
+	localExecutor := NewExecutor(2)
+	if model.IsMaster() {
+		go func() {
+			localExecutor.RunGitSync()
+		}()
+	}
 	// 如果不允许主节点运行任务，则跳过
 	if model.IsMaster() && viper.GetString("setting.runOnMaster") == "N" {
 		return nil
 	}
+
 	go func() {
-		exec := NewExecutor(2)
-		exec.Run(context.TODO())
+		localExecutor.Run(context.TODO())
 	}()
 	return nil
 }

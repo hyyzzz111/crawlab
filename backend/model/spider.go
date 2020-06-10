@@ -49,7 +49,7 @@ type Spider struct {
 	IsGit            bool   `json:"is_git" bson:"is_git"`                         // 是否为 Git
 	GitUrl           string `json:"git_url" bson:"git_url"`                       // Git URL
 	GitBranch        string `json:"git_branch" bson:"git_branch"`                 // Git 分支
-	GitHash          string `json:"git_hash" bson:"git_branch"`                   // Git Hash
+	GitHash          string `json:"git_hash" bson:"git_hash"`                     // Git Hash
 	GitHasCredential bool   `json:"git_has_credential" bson:"git_has_credential"` // Git 是否加密
 	GitUsername      string `json:"git_username" bson:"git_username"`             // Git 用户名
 	GitPassword      string `json:"git_password" bson:"git_password"`             // Git 密码
@@ -75,7 +75,9 @@ type Spider struct {
 	Config      entity.ConfigSpiderData `json:"config"`       // 可配置爬虫配置
 	LatestTasks []Task                  `json:"latest_tasks"` // 最近任务列表
 	Username    string                  `json:"username"`     // 用户名称
+	Syncing     bool                    `json:"syncing"`      //是否正在同步代码
 
+	LastSyncTime time.Time `json:"last_sync_time"` //最后一次同步时间
 	// 时间
 	UserId   bson.ObjectId `json:"user_id" bson:"user_id"`
 	CreateTs time.Time     `json:"create_ts" bson:"create_ts"`

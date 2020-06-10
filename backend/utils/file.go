@@ -3,10 +3,12 @@ package utils
 import (
 	"archive/zip"
 	"bufio"
+	"crypto/md5"
 	"fmt"
 	"github.com/apex/log"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -41,6 +43,33 @@ func GetSpiderMd5Str(file string) string {
 	md5Str = strings.Replace(md5Str, " ", "", -1)
 	md5Str = strings.Replace(md5Str, "\n", "", -1)
 	return md5Str
+}
+func FileMd5(filePath string) (md5Str string, err error) {
+	file, err := os.Open(filePath)
+	const filechunk = 8192 // we settle for 8KB
+
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	// calculate the file size
+	info, _ := file.Stat()
+
+	filesize := info.Size()
+
+	blocks := uint64(math.Ceil(float64(filesize) / float64(filechunk)))
+
+	hash := md5.New()
+	for i := uint64(0); i < blocks; i++ {
+		blocksize := int(math.Min(filechunk, float64(filesize-int64(i*filechunk))))
+		buf := make([]byte, blocksize)
+
+		file.Read(buf)
+		io.WriteString(hash, string(buf)) // append into the hash
+	}
+	return string(hash.Sum(nil)), nil
 }
 
 // 创建文件

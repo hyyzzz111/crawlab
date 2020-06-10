@@ -7,6 +7,7 @@ import (
 	"crawlab/entity"
 	"crawlab/lib/cron"
 	"crawlab/model"
+	"crawlab/pkg/types"
 	"crawlab/services/local_node"
 	"crawlab/services/notification"
 	"crawlab/services/spider_handler"
@@ -40,21 +41,6 @@ var Exec *Executor
 //Added by cloud: 2019/09/04,solve data race
 var LockList sync.Map
 
-// 任务消息
-type TaskMessage struct {
-	Id  string
-	Cmd string
-}
-
-// 序列化任务消息
-func (m *TaskMessage) ToString() (string, error) {
-	data, err := json.Marshal(&m)
-	if err != nil {
-		return "", err
-	}
-	return utils.BytesToString(data), err
-}
-
 // 任务执行器
 type Executor struct {
 	Cron *cron.Cron
@@ -87,7 +73,7 @@ func (ex *Executor) Start() error {
 // 派发任务
 func AssignTask(task model.Task) error {
 	// 生成任务信息
-	msg := TaskMessage{
+	msg := types.TaskMessage{
 		Id: task.Id,
 	}
 
@@ -532,7 +518,7 @@ func ExecuteTask(id int) {
 	}
 
 	// 反序列化
-	tMsg := TaskMessage{}
+	tMsg := types.TaskMessage{}
 	if err := json.Unmarshal([]byte(msg), &tMsg); err != nil {
 		log.Errorf("json string to struct error: %s", err.Error())
 		return
