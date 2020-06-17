@@ -1,4 +1,4 @@
-FROM golang:1.13 AS backend-build
+FROM golang:latest AS backend-build
 
 WORKDIR /go/src/app
 COPY ./backend .
@@ -8,16 +8,16 @@ ENV GOPROXY https://goproxy.io
 
 RUN go install -v ./...
 
-FROM node:8.16.0-alpine AS frontend-build
+FROM node:latest AS frontend-build
 
 ADD ./frontend /app
 WORKDIR /app
 
 # install frontend
-RUN npm config set unsafe-perm true
-RUN npm install -g yarn && yarn install
+#RUN npm config set unsafe-perm true
+#RUN npm install -g yarn && yarn install
 
-RUN npm run build:prod
+RUN yarn install && yarn run build:prod
 
 # images
 FROM ubuntu:latest
@@ -43,7 +43,12 @@ RUN chmod +x /usr/local/bin/dumb-init
 RUN pip install scrapy pymongo bs4 requests crawlab-sdk scrapy-splash
 
 # add files
-ADD . /app
+COPY ./backend/conf /app/backend/conf
+COPY ./backend/data /app/backend/data
+COPY ./backend/scripts /app/backend/scripts
+COPY ./backend/template /app/backend/template
+COPY ./nginx /app/nginx
+COPY ./docker_init.sh /app/docker_init.sh
 
 # copy backend files
 RUN mkdir -p /opt/bin
